@@ -1,161 +1,239 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>ZeroPay Store</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    /* Product grid */
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 20px;
-      padding: 20px;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeroPay Store</title>
+<style>
+body, html{margin:0;padding:0;font-family:Arial,sans-serif;background:#e5ddd5;}
+header{background:#075E54;color:#fff;display:flex;align-items:center;padding:10px 20px;box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+header .brand{display:flex;align-items:center;gap:10px;}
+header .brand img{height:40px;border-radius:6px;}
+main{padding:20px;}
+.product-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:15px;}
+.product-item{background:#fff;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.05);padding:12px;display:flex;flex-direction:column;align-items:center;transition:0.2s;}
+.product-item:hover{transform:translateY(-3px);}
+.product-item img{width:100%;height:150px;object-fit:cover;border-radius:8px;margin-bottom:8px;}
+.product-item h3{margin:0 0 5px;color:#075E54;}
+.product-item .price{color:#25D366;font-weight:bold;margin-bottom:8px;}
+.product-item button{padding:8px 12px;border:none;background:#128C7E;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold;}
+.product-item button:hover{background:#25D366;}
+.carousel{position:relative;width:100%;height:150px;overflow:hidden;border-radius:8px;margin-bottom:8px;}
+.carousel img{width:100%;height:150px;object-fit:cover;border-radius:8px;transition:0.3s;}
+.carousel button{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,0.5);color:#fff;border:none;padding:5px 8px;border-radius:50%;cursor:pointer;}
+.carousel .prev{left:5px;}
+.carousel .next{right:5px;}
+#buyModal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);justify-content:center;align-items:center;z-index:999;}
+#buyModal .modal-content{background:#fff;padding:20px;border-radius:12px;width:300px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);}
+#buyModal select,input{width:100%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc;}
+#buyModal button{margin-top:10px;padding:10px 16px;border:none;border-radius:6px;background:#25D366;color:#fff;font-weight:bold;cursor:pointer;}
+#buyModal button:hover{background:#128C7E;}
+footer{text-align:center;padding:10px;color:#555;margin-top:20px;font-size:13px;}
+#chatIcon{position:fixed;bottom:20px;right:20px;width:60px;height:60px;background:#25D366;border-radius:50%;display:flex;justify-content:center;align-items:center;cursor:pointer;box-shadow:0 4px 15px rgba(0,0,0,0.2);}
+#chatIcon img{width:35px;height:35px;}
+#chatPanel{position:fixed;bottom:90px;right:20px;width:320px;background:#fff;border-radius:10px;box-shadow:0 4px 15px rgba(0,0,0,0.2);display:none;flex-direction:column;z-index:1000;}
+#chatPanel .chatHeader{background:#075E54;color:#fff;padding:10px;border-top-left-radius:10px;border-top-right-radius:10px;font-weight:bold;display:flex;align-items:center;gap:8px;}
+#chatPanel .chatHeader img{width:35px;height:35px;border-radius:50%;}
+#chatMessages{height:200px;overflow-y:auto;margin:10px;border:1px solid #ccc;border-radius:6px;padding:6px;background:#f8f9f8;}
+#chatInput{width:100%;border-radius:6px;border:1px solid #ccc;padding:6px;resize:none;display:none;}
+#sendMsgBtn{border:none;background:#25D366;color:#fff;font-weight:bold;cursor:pointer;padding:8px;margin:6px;border-radius:6px;width:100%;display:none;}
+#chatRegistration{padding:10px;display:flex;flex-direction:column;gap:6px;}
+#chatRegistration input{padding:6px;border-radius:6px;border:1px solid #ccc;}
+#chatRegistration button{background:#128C7E;color:#fff;border:none;padding:8px;border-radius:6px;font-weight:bold;cursor:pointer;}
+#chatRegistration button:hover{background:#25D366;}
+#preQuestions{display:flex;flex-direction:column;gap:6px;margin-top:10px;display:none;}
+#preQuestions button{background:#25D366;color:#fff;border:none;padding:6px;border-radius:6px;font-weight:bold;cursor:pointer;}
+#preQuestions button:hover{background:#128C7E;}
 
-    .product-card {
-      border: 1px solid #ddd;
-      border-radius: 8px;
-      padding: 10px;
-      text-align: center;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
-      position: relative;
-    }
-
-    .product-card:hover {
-      transform: scale(1.03);
-    }
-
-    .carousel img {
-      width: 100%;
-      height: 150px;
-      object-fit: cover;
-      border-radius: 4px;
-    }
-
-    .carousel button {
-      font-size: 18px;
-      line-height: 1;
-      user-select: none;
-      position: absolute;
-      top: 50%;
-      transform: translateY(-50%);
-      background: rgba(0,0,0,0.6);
-      color: #fff;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-
-    .carousel .prev-btn { left: 5px; }
-    .carousel .next-btn { right: 5px; }
-
-    .empty {
-      text-align: center;
-      margin-top: 50px;
-      font-size: 16px;
-    }
-
-    .empty a {
-      color: #007bff;
-      text-decoration: none;
-    }
-
-    .empty a:hover {
-      text-decoration: underline;
-    }
-
-    /* Buy modal */
-    #buyModal {
-      display:none;
-      position:fixed;
-      top:0;
-      left:0;
-      width:100%;
-      height:100%;
-      background:rgba(0,0,0,0.6);
-      justify-content:center;
-      align-items:center;
-      z-index:999;
-    }
-
-    #buyModal > div {
-      background:#fff;
-      padding:20px;
-      border-radius:8px;
-      max-width:400px;
-      width:90%;
-    }
-
-    #buyModal label {
-      display:block;
-      margin:10px 0;
-    }
-
-    #buyModal input, #buyModal select {
-      width:100%;
-      padding:6px;
-      margin-top:4px;
-      border-radius:4px;
-      border:1px solid #ccc;
-    }
-
-    #buyModal button {
-      padding:6px 12px;
-      margin-left:5px;
-      border:none;
-      border-radius:4px;
-      cursor:pointer;
-    }
-
-    #buyModal #modalConfirm { background:#007bff; color:#fff; }
-    #buyModal #modalCancel { background:#ccc; }
-  </style>
+/* Pop-Up Ad */
+#popupAd{display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+background:#fff;padding:20px;border-radius:12px;box-shadow:0 5px 20px rgba(0,0,0,0.3);z-index:10000;width:300px;text-align:center;}
+#popupAd img{width:100%;border-radius:8px;margin-bottom:10px;}
+#popupAd button{background:#25D366;color:#fff;padding:8px 12px;border:none;border-radius:6px;cursor:pointer;margin-top:10px;}
+#popupAd button:hover{background:#128C7E;}
+</style>
 </head>
 <body>
-  <header class="site-header">
-    <div class="brand">
-      <img src="logo.png" alt="Store logo" class="logo" onerror="this.style.display='none'">
-      <h1>ZeroPay Store</h1>
-    </div>
-  </header>
 
-  <main>
-    <section id="products" class="product-grid" aria-live="polite"></section>
-    <div id="empty" class="empty" hidden>
-      <p>No products found. Please contact the admin to add products.</p>
-    </div>
-  </main>
-
-  <footer class="site-footer">
-    <small>© <span id="year"></span> ZeroPay Store</small>
-  </footer>
-
-  <!-- Buy Modal -->
-  <div id="buyModal">
-    <div>
-      <h3 id="modalProductName"></h3>
-      <p id="modalProductPrice"></p>
-      <label>Quantity: <input type="number" id="modalQty" value="1" min="1"></label>
-      <label>Delivery: 
-        <select id="modalDelivery">
-          <option value="Standard">Standard</option>
-          <option value="Express">Express</option>
-        </select>
-      </label>
-      <div style="text-align:right;margin-top:10px;">
-        <button id="modalCancel">Cancel</button>
-        <button id="modalConfirm">Proceed to Payment</button>
-      </div>
-    </div>
+<header>
+  <div class="brand">
+    <img src="logo.png" alt="Store Logo" onerror="this.style.display='none'"/>
+    <h1>ZeroPay Store</h1>
   </div>
+</header>
 
-  <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
-  <script src="scripts.js"></script>
+<main>
+  <div id="products" class="product-grid"></div>
+</main>
+
+<footer>© <span id="year"></span> ZeroPay Store</footer>
+
+<!-- Buy Modal -->
+<div id="buyModal">
+  <div class="modal-content">
+    <h3 id="modalProductName"></h3>
+    <label>Quantity:</label>
+    <input type="number" id="buyQuantity" value="1" min="1"/>
+    <label>Delivery Option:</label>
+    <select id="buyDelivery">
+      <option value="Standard">Standard</option>
+      <option value="Express">Express</option>
+    </select>
+    <button id="confirmBuy">Buy Now</button>
+  </div>
+</div>
+
+<!-- Floating Chat Icon -->
+<div id="chatIcon"><img src="chat-icon.png" alt="Chat"/></div>
+
+<!-- Customer Care Chat Panel -->
+<div id="chatPanel">
+  <div class="chatHeader"><img src="agent.png" alt="Agent"/> Customer Care</div>
+  <div id="chatMessages"></div>
+  <div id="chatRegistration">
+    <input type="text" id="regName" placeholder="Full Name"/>
+    <input type="email" id="regEmail" placeholder="Email"/>
+    <input type="tel" id="regPhone" placeholder="WhatsApp Phone"/>
+    <button id="startChatBtn">Start Chat</button>
+  </div>
+  <div id="preQuestions">
+    <button class="preQuestion">Where is my order?</button>
+    <button class="preQuestion">Payment issue</button>
+    <button class="preQuestion">Product info</button>
+  </div>
+  <textarea id="chatInput" rows="2" placeholder="Type your message..."></textarea>
+  <button id="sendMsgBtn">Send</button>
+</div>
+
+<!-- Pop-Up Ad -->
+<div id="popupAd">
+  <img id="popupImage" src=""/>
+  <h3 id="popupTitle"></h3>
+  <p id="popupDesc"></p>
+  <button id="popupClose">Close</button>
+</div>
+
+<script>
+// === Year ===
+document.getElementById('year').textContent=new Date().getFullYear();
+
+// === Products ===
+let products = JSON.parse(localStorage.getItem('zp_products')||'[]');
+const productGrid=document.getElementById('products');
+
+function renderProducts(){
+  productGrid.innerHTML='';
+  products.forEach((p,i)=>{
+    const div=document.createElement('div'); div.className='product-item';
+    let imagesHtml='';
+    if(p.images && p.images.length>1){
+      imagesHtml=`<div class="carousel" id="carousel-${i}"><img src="${p.images[0]}"/><button class="prev">‹</button><button class="next">›</button></div>`;
+    } else { imagesHtml=`<img src="${p.images? p.images[0]:'https://via.placeholder.com/400x300?text=Product'}"/>`; }
+    div.innerHTML=`${imagesHtml}<h3>${p.name}</h3><div class="price">${p.currency} ${Number(p.price).toFixed(2)}</div><button onclick="buyProduct(${i})">Buy</button>`;
+    productGrid.appendChild(div);
+
+    if(p.images && p.images.length>1){
+      const carousel=div.querySelector('.carousel'); const imgEl=carousel.querySelector('img'); let idx=0;
+      carousel.querySelector('.prev').addEventListener('click',()=>{idx=(idx-1+p.images.length)%p.images.length; imgEl.src=p.images[idx];});
+      carousel.querySelector('.next').addEventListener('click',()=>{idx=(idx+1)%p.images.length; imgEl.src=p.images[idx];});
+    }
+  });
+}
+renderProducts();
+window.addEventListener('storage',()=>{products=JSON.parse(localStorage.getItem('zp_products')||'[]'); renderProducts();});
+
+// === Buy Modal ===
+const buyModal=document.getElementById('buyModal');
+const modalProductName=document.getElementById('modalProductName');
+let currentProduct=null;
+
+function buyProduct(i){currentProduct=products[i]; modalProductName.textContent=currentProduct.name; buyModal.style.display='flex';}
+document.getElementById('confirmBuy').onclick=()=>{
+  const quantity=parseInt(document.getElementById('buyQuantity').value)||1;
+  const delivery=document.getElementById('buyDelivery').value;
+  if(!currentProduct.payment_link){alert('Payment not available'); return;}
+  let iframe=document.getElementById('paymentIframe');
+  if(!iframe){iframe=document.createElement('iframe'); iframe.id='paymentIframe'; iframe.style.display='none'; document.body.appendChild(iframe);}
+  const url=`${currentProduct.payment_link}?quantity=${quantity}&delivery=${encodeURIComponent(delivery)}`;
+  iframe.src=url;
+  alert('Payment request sent!');
+  buyModal.style.display='none';
+};
+buyModal.addEventListener('click',e=>{if(e.target===buyModal) buyModal.style.display='none';});
+
+// === Chat ===
+const chatIcon=document.getElementById('chatIcon');
+const chatPanel=document.getElementById('chatPanel');
+const chatMessages=document.getElementById('chatMessages');
+const chatRegistration=document.getElementById('chatRegistration');
+const preQuestions=document.getElementById('preQuestions');
+const chatInput=document.getElementById('chatInput');
+const sendMsgBtn=document.getElementById('sendMsgBtn');
+
+chatIcon.onclick=()=>{chatPanel.style.display=chatPanel.style.display==='flex'?'none':'flex';}
+
+document.getElementById('startChatBtn').onclick=()=>{
+  const name=document.getElementById('regName').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const phone=document.getElementById('regPhone').value.trim();
+  if(!name || !email || !phone){alert('All fields required'); return;}
+  localStorage.setItem('chatUser', JSON.stringify({name,email,phone}));
+  sendToTelegram('Registration', `Name:${name}, Email:${email}, Phone:${phone}`);
+  chatRegistration.style.display='none'; preQuestions.style.display='flex';
+};
+
+document.querySelectorAll('.preQuestion').forEach(btn=>{
+  btn.onclick=()=>{
+    const user=JSON.parse(localStorage.getItem('chatUser')||'{}');
+    const question=btn.textContent;
+    chatMessages.innerHTML+=`<div>👤 ${user.name||'User'}: ${question}</div>`;
+    sendToTelegram('Question', question);
+    chatInput.style.display='block'; sendMsgBtn.style.display='block'; preQuestions.style.display='none';
+  }
+});
+
+sendMsgBtn.onclick=()=>{
+  const msg=chatInput.value.trim(); if(!msg)return;
+  const user=JSON.parse(localStorage.getItem('chatUser')||'{}');
+  chatMessages.innerHTML+=`<div>👤 ${user.name||'User'}: ${msg}</div>`;
+  sendToTelegram('Message', msg);
+  chatInput.value='';
+};
+
+async function sendToTelegram(type, content){
+  const chatID='YOUR_CHAT_ID';
+  const token='YOUR_BOT_TOKEN';
+  await fetch(`https://api.telegram.org/bot${token}/sendMessage`,{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({chat_id:chatID,text:`${type}: ${content}`})
+  });
+}
+
+// === Pop-Up Ads ===
+let popups = JSON.parse(localStorage.getItem('zp_popups')||'[]');
+const popupAd=document.getElementById('popupAd');
+const popupImage=document.getElementById('popupImage');
+const popupTitle=document.getElementById('popupTitle');
+const popupDesc=document.getElementById('popupDesc');
+
+function showPopup(index=0){
+  if(popups.length===0) return;
+  const p=popups[index];
+  popupImage.src=p.image||'';
+  popupTitle.textContent=p.title||'';
+  popupDesc.textContent=p.description||'';
+  popupAd.style.display='block';
+  if(Notification.permission==='granted'){
+    new Notification(p.title||'Notification',{body:p.description||'',icon:p.image||''});
+  }
+  document.getElementById('popupClose').onclick=()=>{
+    popupAd.style.display='none';
+    showPopup((index+1)%popups.length); // Loop all pop-ups continuously
+  };
+}
+if("Notification" in window){if(Notification.permission!=='granted') Notification.requestPermission();}
+window.addEventListener('load',()=>{setTimeout(()=>{showPopup();},1000);});
+</script>
 </body>
 </html>
