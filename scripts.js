@@ -3,7 +3,7 @@
 async function loadProducts() {
   let products = [];
 
-  // Try loading from localStorage first
+  // Load products from localStorage first
   const stored = localStorage.getItem('zp_products');
   if (stored) {
     products = JSON.parse(stored);
