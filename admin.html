@@ -12,26 +12,52 @@
     label{display:block;font-size:13px;margin-bottom:6px}
     .product-item{padding:8px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
     .small{font-size:13px;color:#555}
+    button{padding:8px 14px;border:none;background:#007bff;color:#fff;border-radius:6px;cursor:pointer}
+    button:hover{opacity:.8}
   </style>
 </head>
 <body>
+  <script>
+    const ADMIN_PASSWORD = "forgetme";
+    const STORAGE_KEY = "zp_admin_logged_in";
+
+    // Hide everything initially
+    document.documentElement.style.display = "none";
+
+    function showPage(){
+      document.documentElement.style.display = "block";
+    }
+
+    // Check if already logged in
+    if(localStorage.getItem(STORAGE_KEY) === "true"){
+      showPage();
+    } else {
+      let entered = prompt("Enter admin password:");
+      if(entered === ADMIN_PASSWORD){
+        localStorage.setItem(STORAGE_KEY, "true"); // Remember login
+        showPage();
+        alert("Login successful!");
+      } else {
+        alert("Incorrect password! Access denied.");
+        document.body.innerHTML = "<h1>Access Denied</h1>";
+        throw new Error("Unauthorized");
+      }
+    }
+
+    // Logout function
+    function logoutAdmin(){
+      localStorage.removeItem(STORAGE_KEY);
+      location.reload();
+    }
+  </script>
+
   <header class="site-header">
     <h1>Admin</h1>
     <a class="admin-link" href="index.html">Store</a>
+    <button onclick="logoutAdmin()" style="float:right;">Logout</button>
   </header>
+
   <main>
-    <section>
-      <h2>Store Settings</h2>
-      <label for="globalPay">Global payment link (ZeroPay or other). Leave blank to use DEFAULT_ZERO_PAY_LINK in index.html.</label>
-      <div class="form-row">
-        <input id="globalPay" placeholder="https://your-zero-pay-link.com/pay" />
-        <button id="saveGlobal">Save</button>
-      </div>
-      <p class="small">Saved link is stored locally in your browser (localStorage). For production, you'll usually set the real link server-side or edit index.html.</p>
-    </section>
-
-    <hr />
-
     <section>
       <h2>Products</h2>
       <div id="productList" aria-live="polite"></div>
@@ -41,112 +67,137 @@
         <input id="pname" placeholder="Name" />
         <input id="pprice" placeholder="Price" type="number" step="0.01" />
       </div>
+
       <div class="form-row">
         <input id="pimage" placeholder="Image URL" />
-        <input id="pcurrency" placeholder="Currency (e.g. GHS)" />
+        <input id="pcurrency" placeholder="Currency (GHS, USD etc)" />
       </div>
-      <div style="margin-bottom:8px"><input id="ppayment" placeholder="Product-specific payment link (optional)" /></div>
+
+      <textarea id="pdesc" placeholder="Description"></textarea>
+
       <div class="form-row">
-        <textarea id="pdesc" placeholder="Description"></textarea>
+        <input id="ppayment" placeholder="Product payment link (optional)" />
       </div>
+
       <div class="form-row">
         <button id="addProduct">Add Product</button>
         <button id="exportJson">Export products.json</button>
-        <button id="resetStore">Reset to sample</button>
+        <button id="resetStore">Reset</button>
       </div>
-
-      <p class="small">Note: This admin runs in your browser. To publish changes live to a hosted `products.json`, click Export and upload the downloaded file to your host (GitHub/Netlify/ByetHost).</p>
     </section>
   </main>
 
   <script>
-    // Admin JS — stores products in localStorage under 'zp_products'
     async function loadInitial(){
       const stored = localStorage.getItem('zp_products');
       if(stored){
         window.products = JSON.parse(stored);
       }else{
-        try{ const r = await fetch('products.json'); window.products = await r.json(); }catch(e){ window.products = []; }
+        try{ 
+          const r = await fetch('products.json'); 
+          window.products = await r.json(); 
+        }catch(e){ 
+          window.products = []; 
+        }
       }
       renderList();
-      const savedLink = localStorage.getItem('zp_global_pay');
-      if(savedLink) document.getElementById('globalPay').value = savedLink;
     }
 
     function renderList(){
       const el = document.getElementById('productList');
       el.innerHTML = '';
-      (window.products||[]).forEach((p, i)=>{
+      (window.products || []).forEach((p, i)=>{
         const row = document.createElement('div');
         row.className = 'product-item';
-        const left = document.createElement('div');
-        left.innerHTML = `<div><strong>${escapeHtml(p.name)}</strong> <span class="small">— ${p.currency} ${Number(p.price).toFixed(2)}</span></div><div class="small">ID: ${escapeHtml(p.id)}</div>`;
-        const right = document.createElement('div');
-
-        const editBtn = document.createElement('button'); editBtn.textContent='Edit'; editBtn.onclick = ()=> editProduct(i);
-        const delBtn = document.createElement('button'); delBtn.textContent='Remove'; delBtn.onclick = ()=>{ if(confirm('Remove this product?')){ window.products.splice(i,1); save(); renderList(); } };
-        right.appendChild(editBtn); right.appendChild(delBtn);
-
-        row.appendChild(left); row.appendChild(right);
+        row.innerHTML = `
+          <div>
+            <strong>${p.name}</strong> 
+            <span class="small">— ${p.currency} ${Number(p.price).toFixed(2)}</span>
+            <div class="small">ID: ${p.id}</div>
+          </div>
+          <div>
+            <button onclick="editProduct(${i})">Edit</button>
+            <button onclick="deleteProduct(${i})">Delete</button>
+          </div>
+        `;
         el.appendChild(row);
-      })
+      });
+    }
+
+    function deleteProduct(i){
+      if(confirm("Delete this product?")){
+        window.products.splice(i,1);
+        save();
+        renderList();
+      }
     }
 
     function save(){
-      localStorage.setItem('zp_products', JSON.stringify(window.products||[]));
+      localStorage.setItem('zp_products', JSON.stringify(window.products || []));
     }
 
     document.getElementById('addProduct').addEventListener('click', ()=>{
-      const name = document.getElementById('pname').value.trim();
-      const price = parseFloat(document.getElementById('pprice').value) || 0;
-      const image = document.getElementById('pimage').value.trim() || 'https://via.placeholder.com/800x600?text=Product';
-      const currency = document.getElementById('pcurrency').value.trim() || 'GHS';
-      const desc = document.getElementById('pdesc').value.trim();
-      const payment_link = document.getElementById('ppayment').value.trim();
-      if(!name){ return alert('Name required'); }
+      const name = pname.value.trim();
+      const price = parseFloat(pprice.value) || 0;
+      const image = pimage.value.trim() || 'https://via.placeholder.com/600x400?text=Product';
+      const currency = pcurrency.value.trim() || 'GHS';
+      const desc = pdesc.value.trim();
+      const payment = ppayment.value.trim();
+
+      if(!name) return alert("Name required");
+
       const id = 'p' + Date.now();
-      const item = {id,name,price,currency,image,description:desc,payment_link};
-      window.products = window.products || [];
+      const item = {id, name, price, currency, image, description: desc, payment_link: payment};
+
       window.products.push(item);
-      save(); renderList();
-      // clear
-      document.getElementById('pname').value=''; document.getElementById('pprice').value=''; document.getElementById('pimage').value=''; document.getElementById('pdesc').value=''; document.getElementById('ppayment').value='';
+      save();
+      renderList();
+
+      pname.value = "";
+      pprice.value = "";
+      pimage.value = "";
+      pdesc.value = "";
+      ppayment.value = "";
     });
 
     document.getElementById('exportJson').addEventListener('click', ()=>{
       const data = JSON.stringify(window.products || [], null, 2);
       const blob = new Blob([data], {type:'application/json'});
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href=url; a.download='products.json'; a.click(); URL.revokeObjectURL(url);
-    });
 
-    document.getElementById('saveGlobal').addEventListener('click', ()=>{
-      const v = document.getElementById('globalPay').value.trim();
-      localStorage.setItem('zp_global_pay', v);
-      alert('Saved locally. For public site, set ZERO_PAY_LINK in index.html or upload a published products.json with per-product payment links.');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = "products.json";
+      a.click();
+
+      URL.revokeObjectURL(url);
     });
 
     document.getElementById('resetStore').addEventListener('click', async ()=>{
-      if(!confirm('Reset to the sample products from products.json?')) return;
-      try{ const r = await fetch('products.json'); window.products = await r.json(); save(); renderList(); }catch(e){ alert('Failed to reset'); }
+      if(!confirm("Reset store to default products.json?")) return;
+      try{
+        const r = await fetch("products.json");
+        window.products = await r.json();
+        save();
+        renderList();
+      }catch(e){
+        alert("Cannot reset: products.json missing.");
+      }
     });
 
     function editProduct(i){
       const p = window.products[i];
-      const name = prompt('Product name', p.name);
-      if(name === null) return;
-      p.name = name.trim() || p.name;
-      const price = prompt('Price', String(p.price)); if(price !== null) p.price = parseFloat(price) || p.price;
-      const image = prompt('Image URL', p.image); if(image !== null) p.image = image.trim() || p.image;
-      const currency = prompt('Currency', p.currency); if(currency !== null) p.currency = currency.trim() || p.currency;
-      const desc = prompt('Description', p.description); if(desc !== null) p.description = desc.trim() || p.description;
-      const plink = prompt('Product payment link (optional)', p.payment_link || ''); if(plink !== null) p.payment_link = plink.trim();
-      save(); renderList();
+      p.name = prompt("Name:", p.name) || p.name;
+      p.price = parseFloat(prompt("Price:", p.price)) || p.price;
+      p.image = prompt("Image:", p.image) || p.image;
+      p.currency = prompt("Currency:", p.currency) || p.currency;
+      p.description = prompt("Description:", p.description) || p.description;
+      p.payment_link = prompt("Payment Link:", p.payment_link) || p.payment_link;
+
+      save();
+      renderList();
     }
 
-    function escapeHtml(text){ if(!text) return ''; return text.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
-
-    // Initialize
     loadInitial();
   </script>
 </body>
