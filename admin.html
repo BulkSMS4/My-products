@@ -1,104 +1,118 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin — ZeroPay Store</title>
-  <link rel="stylesheet" href="styles.css">
-  <style>
-    main{padding:20px;max-width:980px;margin:auto}
-    .form-row{display:flex;gap:8px;margin-bottom:8px}
-    input,textarea,select{flex:1;padding:8px;border-radius:6px;border:1px solid #ddd}
-    label{display:block;font-size:13px;margin-bottom:6px}
-    .product-item{padding:8px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center}
-    .small{font-size:13px;color:#555}
-    button{padding:8px 14px;border:none;background:#007bff;color:#fff;border-radius:6px;cursor:pointer}
-    button:hover{opacity:.8}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Admin — ZeroPay Store</title>
+<style>
+  body, html{margin:0;padding:0;font-family:Arial,sans-serif;height:100%;background:#e5ddd5;}
+  body{display:flex;flex-direction:column;}
+
+  /* Login modal */
+  #loginModal {
+    position:fixed;top:0;left:0;width:100%;height:100%;
+    background:rgba(0,0,0,0.6);display:flex;justify-content:center;align-items:center;z-index:999;
+  }
+  #loginModal div {
+    background:#fff;padding:30px;border-radius:12px;width:320px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.3);
+  }
+  #loginModal input {width:100%;padding:10px;margin:12px 0;border-radius:6px;border:1px solid #ccc;font-size:16px;}
+  #loginModal button {padding:10px 16px;border:none;border-radius:6px;background:#25D366;color:#fff;font-weight:bold;font-size:16px;cursor:pointer;}
+  #loginModal button:hover{opacity:.9;}
+  #loginModal p{margin-top:6px;font-size:13px;color:#555;}
+
+  /* WhatsApp-style dashboard */
+  #dashboard { display:flex; flex:1; height:100vh; }
+  #sidebar { width:260px; background:#075E54; color:#fff; display:flex; flex-direction:column; padding:15px; box-shadow:2px 0 8px rgba(0,0,0,0.1);}
+  #sidebar h2 { margin:10px 0;font-size:20px;color:#fff;font-weight:600; }
+  #sidebar button { margin:6px 0;padding:10px 12px;background:#128C7E;border:none;border-radius:8px;color:#fff;font-weight:bold;cursor:pointer;transition:0.2s; text-align:left;}
+  #sidebar button:hover{background:#25D366;}
+  #sidebar button.logout{margin-top:auto;background:#c0392b;}
+  #sidebar button.logout:hover{background:#e74c3c;}
+
+  #main { flex:1; padding:20px; overflow-y:auto; background:#ece5dd; }
+
+  /* Products list */
+  .product-item{padding:12px;border-bottom:1px solid #ccc;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;background:#fff;border-radius:8px;margin-bottom:10px;box-shadow:0 2px 5px rgba(0,0,0,0.05);}
+  .small{font-size:13px;color:#555;}
+  button{padding:6px 10px;border:none;border-radius:6px;background:#128C7E;color:#fff;font-weight:bold;cursor:pointer;margin:2px;transition:0.2s;}
+  button:hover{opacity:.85;}
+
+  .admin-carousel img { width:90px; height:70px; object-fit:cover; border-radius:6px; border:1px solid #ccc; }
+  .admin-carousel button { font-size:14px; line-height:1; user-select:none; position:absolute; top:50%; transform:translateY(-50%); background:rgba(0,0,0,0.5); color:#fff; border:none; border-radius:50%; padding:2px 6px; cursor:pointer; }
+  .image-preview img { max-width:100px; margin-right:5px; margin-top:5px; border-radius:6px; border:1px solid #ccc; }
+
+  input,textarea{padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:8px;width:100%;font-size:14px;}
+  textarea{resize:none;}
+  h3{margin-top:10px;color:#075E54;}
+</style>
 </head>
 <body>
-  <script>
-    const ADMIN_PASSWORD = "forgetme";
-    const STORAGE_KEY = "zp_admin_logged_in";
 
-    // Hide everything initially
-    document.documentElement.style.display = "none";
+<!-- Login Modal -->
+<div id="loginModal">
+  <div>
+    <h2>Admin Login</h2>
+    <input type="password" id="adminPassword" placeholder="Enter Password" />
+    <button id="loginBtn">Login</button>
+    <p style="font-size:12px;color:#555;">Password is hidden for security.</p>
+    <p id="loginError" style="color:red;font-size:13px;display:none;">Wrong password!</p>
+  </div>
+</div>
 
-    function showPage(){
-      document.documentElement.style.display = "block";
-    }
-
-    // Check if already logged in
-    if(localStorage.getItem(STORAGE_KEY) === "true"){
-      showPage();
-    } else {
-      let entered = prompt("Enter admin password:");
-      if(entered === ADMIN_PASSWORD){
-        localStorage.setItem(STORAGE_KEY, "true"); // Remember login
-        showPage();
-        alert("Login successful!");
-      } else {
-        alert("Incorrect password! Access denied.");
-        document.body.innerHTML = "<h1>Access Denied</h1>";
-        throw new Error("Unauthorized");
-      }
-    }
-
-    // Logout function
-    function logoutAdmin(){
-      localStorage.removeItem(STORAGE_KEY);
-      location.reload();
-    }
-  </script>
-
-  <header class="site-header">
-    <h1>Admin</h1>
-    <a class="admin-link" href="index.html">Store</a>
-    <button onclick="logoutAdmin()" style="float:right;">Logout</button>
-  </header>
-
-  <main>
-    <section>
-      <h2>Products</h2>
-      <div id="productList" aria-live="polite"></div>
-
+<!-- Dashboard -->
+<div id="dashboard" style="display:none;">
+  <div id="sidebar">
+    <h2>ZeroPay Admin</h2>
+    <button id="showProducts">Products</button>
+    <button id="addProductBtn">Add Product</button>
+    <button id="exportJson">Export JSON</button>
+    <button id="resetStore">Reset Store</button>
+    <button id="logoutBtn" class="logout">Logout</button>
+  </div>
+  <div id="main">
+    <div id="productList"></div>
+    <div id="addProductForm" style="display:none;">
       <h3>Add Product</h3>
-      <div class="form-row">
-        <input id="pname" placeholder="Name" />
-        <input id="pprice" placeholder="Price" type="number" step="0.01" />
-      </div>
-
-      <div class="form-row">
-        <input id="pimage" placeholder="Image URL" />
-        <input id="pcurrency" placeholder="Currency (GHS, USD etc)" />
-      </div>
-
+      <input id="pname" placeholder="Name" />
+      <input id="pprice" placeholder="Price" type="number" step="0.01" />
+      <input id="pimage" placeholder="Image URLs (comma separated)" />
+      <input id="pcurrency" placeholder="Currency (GHS, USD etc)" />
+      <div class="image-preview" id="imagePreview"></div>
       <textarea id="pdesc" placeholder="Description"></textarea>
+      <input id="ppayment" placeholder="Payment link (optional)" />
+      <button id="addProduct">Add Product</button>
+    </div>
+  </div>
+</div>
 
-      <div class="form-row">
-        <input id="ppayment" placeholder="Product payment link (optional)" />
-      </div>
+<script>
+  // ==== Password protection ====
+  const LOGIN_PASSWORD = 'forgetme'; 
+  const loginModal = document.getElementById('loginModal');
+  const dashboard = document.getElementById('dashboard');
+  const loginBtn = document.getElementById('loginBtn');
+  const loginError = document.getElementById('loginError');
 
-      <div class="form-row">
-        <button id="addProduct">Add Product</button>
-        <button id="exportJson">Export products.json</button>
-        <button id="resetStore">Reset</button>
-      </div>
-    </section>
-  </main>
+  loginBtn.onclick = () => {
+    const pass = document.getElementById('adminPassword').value;
+    if(pass === LOGIN_PASSWORD){
+      loginModal.style.display = 'none';
+      dashboard.style.display = 'flex';
+      initDashboard();
+    }else{
+      loginError.style.display = 'block';
+    }
+  };
 
-  <script>
+  function initDashboard(){
+    window.products = [];
     async function loadInitial(){
       const stored = localStorage.getItem('zp_products');
       if(stored){
         window.products = JSON.parse(stored);
       }else{
-        try{ 
-          const r = await fetch('products.json'); 
-          window.products = await r.json(); 
-        }catch(e){ 
-          window.products = []; 
-        }
+        try{ const r=await fetch('products.json'); window.products = await r.json(); }catch(e){ window.products=[]; }
       }
       renderList();
     }
@@ -106,14 +120,22 @@
     function renderList(){
       const el = document.getElementById('productList');
       el.innerHTML = '';
-      (window.products || []).forEach((p, i)=>{
+      if(!window.products || window.products.length===0){ el.innerHTML='<p>No products yet.</p>'; return; }
+
+      window.products.forEach((p,i)=>{
         const row = document.createElement('div');
-        row.className = 'product-item';
-        row.innerHTML = `
-          <div>
-            <strong>${p.name}</strong> 
-            <span class="small">— ${p.currency} ${Number(p.price).toFixed(2)}</span>
-            <div class="small">ID: ${p.id}</div>
+        row.className='product-item';
+        const imagesHtml = `<div class="admin-carousel" id="admin-carousel-${i}" style="position:relative;display:inline-block;">
+          <img src="${p.images[0]}">
+          ${p.images.length>1?'<button class="prev-btn">‹</button><button class="next-btn">›</button>':''}
+        </div>`;
+        row.innerHTML=`
+          <div style="display:flex;gap:8px;align-items:center;">${imagesHtml}
+            <div>
+              <strong>${p.name}</strong>
+              <div class="small">${p.currency} ${Number(p.price).toFixed(2)}</div>
+              <div class="small">ID: ${p.id}</div>
+            </div>
           </div>
           <div>
             <button onclick="editProduct(${i})">Edit</button>
@@ -121,84 +143,63 @@
           </div>
         `;
         el.appendChild(row);
+
+        if(p.images.length>1){
+          const carousel = row.querySelector(`#admin-carousel-${i}`);
+          const imgEl = carousel.querySelector('img');
+          let imgIndex=0;
+          carousel.querySelector('.prev-btn')?.addEventListener('click',()=>{ imgIndex=(imgIndex-1+p.images.length)%p.images.length; imgEl.src=p.images[imgIndex]; });
+          carousel.querySelector('.next-btn')?.addEventListener('click',()=>{ imgIndex=(imgIndex+1)%p.images.length; imgEl.src=p.images[imgIndex]; });
+        }
       });
     }
 
-    function deleteProduct(i){
-      if(confirm("Delete this product?")){
-        window.products.splice(i,1);
-        save();
-        renderList();
-      }
-    }
+    function save(){ localStorage.setItem('zp_products',JSON.stringify(window.products||[])); }
 
-    function save(){
-      localStorage.setItem('zp_products', JSON.stringify(window.products || []));
-    }
+    const pimage = document.getElementById('pimage');
+    pimage?.addEventListener('input',()=>{
+      const preview = document.getElementById('imagePreview');
+      preview.innerHTML='';
+      const urls = pimage.value.split(',').map(u=>u.trim()).filter(u=>u);
+      urls.forEach(url=>{ const img=document.createElement('img'); img.src=url; preview.appendChild(img); });
+    });
 
-    document.getElementById('addProduct').addEventListener('click', ()=>{
-      const name = pname.value.trim();
-      const price = parseFloat(pprice.value) || 0;
-      const image = pimage.value.trim() || 'https://via.placeholder.com/600x400?text=Product';
-      const currency = pcurrency.value.trim() || 'GHS';
-      const desc = pdesc.value.trim();
-      const payment = ppayment.value.trim();
-
-      if(!name) return alert("Name required");
-
-      const id = 'p' + Date.now();
-      const item = {id, name, price, currency, image, description: desc, payment_link: payment};
-
-      window.products.push(item);
+    document.getElementById('addProduct').onclick = ()=>{
+      const name = document.getElementById('pname').value.trim();
+      const price = parseFloat(document.getElementById('pprice').value)||0;
+      const images = document.getElementById('pimage').value.split(',').map(u=>u.trim()).filter(u=>u) || ['https://via.placeholder.com/600x400?text=Product'];
+      const currency = document.getElementById('pcurrency').value.trim() || 'GHS';
+      const desc = document.getElementById('pdesc').value.trim();
+      const payment = document.getElementById('ppayment').value.trim();
+      if(!name) return alert('Name required');
+      const id='p'+Date.now();
+      window.products.push({id,name,price,currency,images,description:desc,payment_link:payment});
       save();
       renderList();
+      document.getElementById('pname').value=''; document.getElementById('pprice').value=''; document.getElementById('pimage').value=''; document.getElementById('pcurrency').value=''; document.getElementById('pdesc').value=''; document.getElementById('ppayment').value=''; document.getElementById('imagePreview').innerHTML='';
+    };
 
-      pname.value = "";
-      pprice.value = "";
-      pimage.value = "";
-      pdesc.value = "";
-      ppayment.value = "";
-    });
-
-    document.getElementById('exportJson').addEventListener('click', ()=>{
-      const data = JSON.stringify(window.products || [], null, 2);
-      const blob = new Blob([data], {type:'application/json'});
-      const url = URL.createObjectURL(blob);
-
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = "products.json";
-      a.click();
-
-      URL.revokeObjectURL(url);
-    });
-
-    document.getElementById('resetStore').addEventListener('click', async ()=>{
-      if(!confirm("Reset store to default products.json?")) return;
-      try{
-        const r = await fetch("products.json");
-        window.products = await r.json();
-        save();
-        renderList();
-      }catch(e){
-        alert("Cannot reset: products.json missing.");
-      }
-    });
-
-    function editProduct(i){
+    window.editProduct = function(i){
       const p = window.products[i];
-      p.name = prompt("Name:", p.name) || p.name;
-      p.price = parseFloat(prompt("Price:", p.price)) || p.price;
-      p.image = prompt("Image:", p.image) || p.image;
-      p.currency = prompt("Currency:", p.currency) || p.currency;
-      p.description = prompt("Description:", p.description) || p.description;
-      p.payment_link = prompt("Payment Link:", p.payment_link) || p.payment_link;
+      p.name = prompt('Name:',p.name)||p.name;
+      p.price = parseFloat(prompt('Price:',p.price))||p.price;
+      p.images = prompt('Image URLs (comma separated):',p.images.join(','))?.split(',').map(u=>u.trim())||p.images;
+      p.currency = prompt('Currency:',p.currency)||p.currency;
+      p.description = prompt('Description:',p.description)||p.description;
+      p.payment_link = prompt('Payment Link:',p.payment_link)||p.payment_link;
+      save(); renderList();
+    };
+    window.deleteProduct = function(i){ if(confirm('Delete this product?')){ window.products.splice(i,1); save(); renderList(); } };
 
-      save();
-      renderList();
-    }
+    // Sidebar buttons
+    document.getElementById('showProducts').onclick = ()=>{ document.getElementById('addProductForm').style.display='none'; renderList(); };
+    document.getElementById('addProductBtn').onclick = ()=>{ document.getElementById('addProductForm').style.display='block'; };
+    document.getElementById('exportJson').onclick = ()=>{ const data=JSON.stringify(window.products||[],null,2); const blob=new Blob([data],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='products.json'; a.click(); };
+    document.getElementById('resetStore').onclick = async ()=>{ if(!confirm("Reset store to default products.json?")) return; try{ const r=await fetch("products.json"); window.products=await r.json(); save(); renderList(); }catch(e){ alert("Cannot reset: products.json missing."); } };
+    document.getElementById('logoutBtn').onclick = ()=>{ localStorage.removeItem('zp_products'); location.reload(); };
 
     loadInitial();
-  </script>
+  }
+</script>
 </body>
 </html>
