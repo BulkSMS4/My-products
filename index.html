@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ZeroPay Store</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="brand">
+      <img src="logo.png" alt="Store logo" class="logo" onerror="this.style.display='none'">
+      <h1>ZeroPay Store</h1>
+    </div>
+    <nav>
+      <a class="admin-link" href="admin.html">Admin</a>
+    </nav>
+  </header>
+
+  <main>
+    <section id="products" class="product-grid" aria-live="polite">
+      <!-- Products inserted here by scripts.js -->
+    </section>
+    <div id="empty" class="empty" hidden>
+      <p>No products found. Open <a href="admin.html">Admin</a> to add products or upload a valid products.json.</p>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <small>© <span id="year"></span> ZeroPay Store</small>
+  </footer>
+
+  <script>
+    // Default global payment link placeholder. For production replace this value
+    // in the hosted index.html or set the link using admin.html which saves to localStorage.
+    window.DEFAULT_ZERO_PAY_LINK = ""; // leave empty for admin-managed link
+  </script>
+  <script src="scripts.js"></script>
+  <script>document.getElementById('year').textContent = new Date().getFullYear();</script>
+</body>
+</html>
