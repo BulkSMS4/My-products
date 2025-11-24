@@ -120,657 +120,136 @@
 
     <main id="main" role="main" tabindex="-1">
       <div id="mainInner">
-
-        <!-- HOME view (shows ads preview + summary) -->
-        <div id="homeView" style="display:none;">
-          <h3>Dashboard Home</h3>
-          <p class="small">Quick preview of ads and products.</p>
-
-          <div class="ads-preview-container">
-            <div>
-              <strong>Top Ads Preview</strong>
-              <div id="topAdsPreview"></div>
-            </div>
-            <div>
-              <strong>Bottom Ads Preview</strong>
-              <div id="bottomAdsPreview"></div>
-            </div>
-          </div>
-
-          <h4 style="margin-top:14px">Products (quick)</h4>
-          <div id="productListHome"></div>
-        </div>
-
-        <!-- Products view -->
-        <div id="productList" style="display:none;"></div>
-
-        <!-- ADD PRODUCT FORM -->
-        <div id="addProductForm" style="display:none;">
-          <h3>Add Product</h3>
-          <input id="pname" placeholder="Name" />
-          <input id="pprice" placeholder="Price" type="number" step="0.01" />
-          <input id="pimage" placeholder="Image URLs (comma separated)" />
-          <input id="pcurrency" placeholder="Currency (GHS, USD etc)" />
-          <div class="image-preview" id="imagePreview"></div>
-          <textarea id="pdesc" placeholder="Description"></textarea>
-          <input id="ppayment" placeholder="Payment link (optional)" />
-          <div style="display:flex;gap:8px;">
-            <button id="addProduct" class="inline">Add Product</button>
-            <button id="cancelAdd" class="inline" style="background:#999">Cancel</button>
-          </div>
-        </div>
-
-        <!-- POPUP COMPOSER -->
-        <div id="popupSection" style="display:none;">
-          <h3>Send Pop-Up Notification</h3>
-          <div id="popupComposer">
-            <textarea id="popupText" placeholder="Pop-up message (title + short text)"></textarea>
-            <input id="popupImg" placeholder="Image URL (optional)" />
-            <input id="popupBtnText" placeholder="Button Text (optional)" />
-            <input id="popupBtnLink" placeholder="Button Link (optional)" />
-            <div style="display:flex;gap:8px;margin-top:8px;">
-              <button id="sendPopupBtn" class="inline">Send Pop-Up (save to local)</button>
-              <button id="publishPopupBtn" class="inline" style="background:var(--wa-dark)">Publish & Export popup.json</button>
-            </div>
-            <div style="margin-top:8px;font-size:13px;color:#555">Publishing exports <code>popup.json</code>. Upload that file to your host root so all site visitors get the popup automatically (recommended).</div>
-            <h4 style="margin-top:12px;">Preview</h4>
-            <div id="popupPreview" class="popup-preview">No preview yet.</div>
-          </div>
-
-          <h4 style="margin-top:18px;">Existing pop-ups (local)</h4>
-          <div id="existingPopups"></div>
-        </div>
-
-        <!-- ADS SETTINGS VIEW -->
-        <div id="adsSection" style="display:none;">
-          <h3>Ads Settings (Top & Bottom)</h3>
-          <p class="small">Configure Top Ads and Bottom Ads. Changes are saved to <code>localStorage</code> and exported via ads.json.</p>
-
-          <div class="ads-section">
-            <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;">
-              <strong>Top Ads</strong>
-              <label style="font-size:13px"><input type="checkbox" id="topMultiple" /> Allow multiple (ticker)</label>
-            </div>
-
-            <div id="topAdsList" class="ads-list"></div>
-
-            <div style="margin-top:8px;">
-              <button id="addTopAd" class="inline">Add Top Ad</button>
-              <button id="clearTopAds" class="inline" style="background:#999">Clear Top Ads</button>
-            </div>
-          </div>
-
-          <div class="ads-section">
-            <div style="display:flex;gap:8px;align-items:center;justify-content:space-between;">
-              <strong>Bottom Ads</strong>
-              <label style="font-size:13px"><input type="checkbox" id="bottomMultiple" /> Allow multiple (ticker)</label>
-            </div>
-
-            <div id="bottomAdsList" class="ads-list"></div>
-
-            <div style="margin-top:8px;">
-              <button id="addBottomAd" class="inline">Add Bottom Ad</button>
-              <button id="clearBottomAds" class="inline" style="background:#999">Clear Bottom Ads</button>
-            </div>
-          </div>
-
-          <div style="display:flex;gap:8px;margin-top:12px;">
-            <button id="saveAdsBtn" class="inline">Save Ads</button>
-            <button id="exportAdsBtn" class="inline" style="background:var(--wa-dark)">Export ads.json</button>
-          </div>
-
-          <h4 style="margin-top:14px">Live Preview</h4>
-          <div id="adsLivePreview"></div>
-        </div>
-
+        <!-- Views will be dynamically rendered here (home, products, add product, popups, ads) -->
       </div>
     </main>
   </div>
 </div>
 
 <script>
-/* ==================== Admin Enhanced (with Ads Settings) ==================== */
+/* ==================== Full Admin JS (Products, Popups, Ads, Drawer, Auth) ==================== */
 
-/* ---- Simple auth persistence ---- */
+/* Password */
 const LOGIN_PASSWORD = 'forgetme';
+
+/* Login elements */
 const loginModal = document.getElementById('loginModal');
 const loginBtn = document.getElementById('loginBtn');
 const loginError = document.getElementById('loginError');
+
+/* Drawer elements */
 const drawer = document.getElementById('drawer');
 const drawerBackdrop = document.getElementById('drawerBackdrop');
 const hamburger = document.getElementById('hamburger');
 const mainEl = document.getElementById('main');
 
-/* on load: if auth saved, skip modal */
+/* On load: check auth */
 if(localStorage.getItem('zp_admin_auth') === '1'){
   loginModal.style.display = 'none';
   initDashboard();
-} else {
-  loginModal.style.display = 'flex';
-}
+} else loginModal.style.display = 'flex';
 
-/* login */
-loginBtn.onclick = () => {
+/* Login logic */
+loginBtn.onclick = ()=>{
   const pass = document.getElementById('adminPassword').value;
   if(pass === LOGIN_PASSWORD){
-    // persist auth so refresh doesn't close page
-    localStorage.setItem('zp_admin_auth', '1');
-    loginModal.style.display = 'none';
+    localStorage.setItem('zp_admin_auth','1');
+    loginModal.style.display='none';
     initDashboard();
-  } else {
-    loginError.style.display = 'block';
-  }
+  } else loginError.style.display='block';
 };
 
-/* Drawer open/close with persistence */
-function openDrawer(){
-  drawer.classList.add('open');
-  drawerBackdrop.style.display = 'block';
-  localStorage.setItem('zp_drawer_open', '1');
-}
-function closeDrawer(){
-  drawer.classList.remove('open');
-  drawerBackdrop.style.display = 'none';
-  localStorage.setItem('zp_drawer_open', '0');
-}
-hamburger.addEventListener('click', (e)=>{ e.stopPropagation(); if(drawer.classList.contains('open')) closeDrawer(); else openDrawer(); });
+/* Drawer toggle */
+function openDrawer(){ drawer.classList.add('open'); drawerBackdrop.style.display='block'; localStorage.setItem('zp_drawer_open','1'); }
+function closeDrawer(){ drawer.classList.remove('open'); drawerBackdrop.style.display='none'; localStorage.setItem('zp_drawer_open','0'); }
+hamburger.addEventListener('click',(e)=>{ e.stopPropagation(); drawer.classList.contains('open')?closeDrawer():openDrawer(); });
 drawerBackdrop.addEventListener('click', closeDrawer);
-document.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeDrawer(); });
-document.getElementById('main').addEventListener('click', (e)=> { if(drawer.classList.contains('open')) closeDrawer(); });
-drawer.addEventListener('click', (e)=> e.stopPropagation());
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeDrawer(); });
+mainEl.addEventListener('click', ()=>{ if(drawer.classList.contains('open')) closeDrawer(); });
+drawer.addEventListener('click', e=>e.stopPropagation());
 
-/* Menu wiring */
+/* Menu click */
 document.querySelectorAll('.drawer .menu-item').forEach(btn=>{
-  btn.addEventListener('click', (e)=>{
-    const action = btn.getAttribute('data-action');
-    // set active view in localStorage (persist across refresh)
-    localStorage.setItem('zp_admin_view', action);
+  btn.addEventListener('click', ()=>{
+    const action = btn.dataset.action;
+    localStorage.setItem('zp_admin_view',action);
     handleMenuAction(action);
     closeDrawer();
   });
 });
 
-/* utils to show/hide views */
+/* ---------------- Utils ---------------- */
 function hideAllViews(){
-  document.getElementById('homeView').style.display = 'none';
-  document.getElementById('productList').style.display = 'none';
-  document.getElementById('addProductForm').style.display = 'none';
-  document.getElementById('popupSection').style.display = 'none';
-  document.getElementById('adsSection').style.display = 'none';
+  const ids=['homeView','productList','addProductForm','popupSection','adsSection'];
+  ids.forEach(id=>{
+    let el=document.getElementById(id); if(el) el.style.display='none';
+  });
 }
-function showView(name){
-  hideAllViews();
-  if(name === 'home') {
-    document.getElementById('homeView').style.display = 'block';
-    renderHome();
-  } else if(name === 'products'){
-    document.getElementById('productList').style.display = 'block';
-    renderList();
-  } else if(name === 'add-product'){
-    document.getElementById('addProductForm').style.display = 'block';
-  } else if(name === 'popups'){
-    document.getElementById('popupSection').style.display = 'block';
-    renderExistingPopups();
-  } else if(name === 'ads'){
-    document.getElementById('adsSection').style.display = 'block';
-    renderAdsUI();
-  }
-  // remember last view
-  localStorage.setItem('zp_admin_view', name);
-  mainEl.focus();
+function showView(name){ hideAllViews(); 
+  const idMap = { home:'homeView', products:'productList', 'add-product':'addProductForm', popups:'popupSection', ads:'adsSection' };
+  const el = document.getElementById(idMap[name]);
+  if(el) el.style.display='block';
+  localStorage.setItem('zp_admin_view',name);
 }
 
-/* handle menu actions */
+/* Menu actions */
 function handleMenuAction(action){
-  switch(action){
-    case 'home': showView('home'); break;
-    case 'products': showView('products'); break;
-    case 'add-product': showView('add-product'); break;
-    case 'popups': showView('popups'); break;
-    case 'ads': showView('ads'); break;
-    case 'export': exportJson(); break;
-    case 'reset': resetStore(); break;
-    case 'logout': doLogout(); break;
-    default: showView('home');
-  }
+  if(action==='home') showView('home');
+  else if(action==='products') showView('products');
+  else if(action==='add-product') showView('add-product');
+  else if(action==='popups') showView('popups');
+  else if(action==='ads') showView('ads');
+  else if(action==='export') exportJson();
+  else if(action==='reset') resetStore();
+  else if(action==='logout') doLogout();
+  else showView('home');
 }
 
-/* Persist drawer open state on load */
-(function restoreDrawerState(){
-  const open = localStorage.getItem('zp_drawer_open');
-  if(open === '1') openDrawer(); else closeDrawer();
-})();
+/* ---------------- Initial Drawer State ---------------- */
+(function(){ const open = localStorage.getItem('zp_drawer_open'); if(open==='1') openDrawer(); else closeDrawer(); })();
 
-/* ==================== Products & Popups (unchanged logic + small improvements) ==================== */
-window.products = [];
-let popups = JSON.parse(localStorage.getItem('zp_popups') || '[]');
+/* ---------------- Helper: escape ---------------- */
+function escapeHtml(str){ return str.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 
-async function loadInitial(){
-  const stored = localStorage.getItem('zp_products');
-  if(stored){
-    window.products = JSON.parse(stored);
-  }else{
-    try{ const r=await fetch('products.json'); if(r.ok) window.products = await r.json(); }catch(e){ window.products=[]; }
-  }
-  renderList();
-  renderExistingPopups();
-}
-
-/* Render product list (full) */
-function renderList(){
-  const el = document.getElementById('productList');
-  el.innerHTML = '';
-  if(!window.products || window.products.length===0){ el.innerHTML='<p>No products yet.</p>'; return; }
-
-  window.products.forEach((p,i)=>{
-    const row = document.createElement('div');
-    row.className='product-item';
-    const imagesHtml = `<div class="admin-carousel" id="admin-carousel-${i}" style="position:relative;display:inline-block;">
-      <img src="${(p.images&&p.images[0])?escapeHtml(p.images[0]):(p.image? escapeHtml(Array.isArray(p.image)?p.image[0]:p.image) : 'https://via.placeholder.com/600x400?text=Product')}">
-    </div>`;
-    row.innerHTML=`
-      <div style="display:flex;gap:8px;align-items:center;">
-        ${imagesHtml}
-        <div>
-          <strong>${escapeHtml(p.name)}</strong>
-          <div class="small">${p.currency || 'GHS'} ${Number(p.price).toFixed(2)}</div>
-          <div class="small">ID: ${escapeHtml(p.id)}</div>
-        </div>
-      </div>
-      <div>
-        <button class="inline" data-edit="${i}">Edit</button>
-        <button class="inline" data-delete="${i}" style="background:#c0392b">Delete</button>
-      </div>
-    `;
-    el.appendChild(row);
-  });
-
-  // delegated listeners
-  el.querySelectorAll('[data-edit]').forEach(btn => btn.addEventListener('click', ()=>{
-    const i = Number(btn.getAttribute('data-edit'));
-    editProduct(i);
-  }));
-  el.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', ()=>{
-    const i = Number(btn.getAttribute('data-delete'));
-    deleteProduct(i);
-  }));
-}
-
-/* Save products */
-function save(){ localStorage.setItem('zp_products',JSON.stringify(window.products||[])); }
-
-/* Image preview */
-const pimage = document.getElementById('pimage');
-if(pimage){
-  pimage.addEventListener('input',()=>{
-    const preview = document.getElementById('imagePreview');
-    preview.innerHTML='';
-    const urls = (pimage.value || '').split(',').map(u=>u.trim()).filter(u=>u);
-    urls.forEach(url=>{ const img=document.createElement('img'); img.src=url; img.style.maxWidth='80px'; img.style.marginRight='6px'; preview.appendChild(img); });
-  });
-}
-
-/* Add product */
-const addBtn = document.getElementById('addProduct');
-if(addBtn){
-  addBtn.onclick = ()=>{
-    const name = document.getElementById('pname').value.trim();
-    const price = parseFloat(document.getElementById('pprice').value)||0;
-    const images = (document.getElementById('pimage').value || '').split(',').map(u=>u.trim()).filter(u=>u);
-    const currency = document.getElementById('pcurrency').value.trim() || 'GHS';
-    const desc = document.getElementById('pdesc').value.trim();
-    const payment = document.getElementById('ppayment').value.trim();
-    if(!name) return alert('Name required');
-    const id='p'+Date.now();
-    const prod = {id,name,price,currency,description:desc,payment_link:payment};
-    if(images.length>0){ prod.images = images; prod.image = images[0]; }
-    else { prod.images = []; prod.image = ''; }
-    window.products.push(prod);
-    save();
-    renderList();
-    renderHome();
-    // clear
-    document.getElementById('pname').value=''; document.getElementById('pprice').value=''; document.getElementById('pimage').value=''; document.getElementById('pcurrency').value=''; document.getElementById('pdesc').value=''; document.getElementById('ppayment').value=''; document.getElementById('imagePreview').innerHTML='';
-    showView('products');
-    alert('Product added');
-  };
-}
-
-/* Edit/Delete */
-window.editProduct = function(i){
-  const p = window.products[i];
-  p.name = prompt('Name:',p.name)||p.name;
-  p.price = parseFloat(prompt('Price:',p.price))||p.price;
-  const imgs = prompt('Image URLs (comma separated):', (p.images && p.images.length)? p.images.join(',') : (p.image||'')) || '';
-  p.images = imgs.split(',').map(x=>x.trim()).filter(x=>x);
-  p.image = p.images[0] || p.image;
-  p.currency = prompt('Currency:',p.currency)||p.currency;
-  p.description = prompt('Description:',p.description)||p.description;
-  p.payment_link = prompt('Payment Link:',p.payment_link||'')||p.payment_link;
-  save(); renderList(); renderHome();
-};
-
-window.deleteProduct = function(i){ if(confirm('Delete this product?')){ window.products.splice(i,1); save(); renderList(); renderHome(); } };
-
-/* Export / Reset / Logout */
-function exportJson(){ const data=JSON.stringify(window.products||[],null,2); const blob=new Blob([data],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='products.json'; a.click(); showView('products'); }
-async function resetStore(){ if(!confirm("Reset store to default products.json?")) return; try{ const r=await fetch("products.json"); if(!r.ok) throw new Error('no file'); window.products=await r.json(); save(); renderList(); showView('products'); alert('Store reset to products.json'); }catch(e){ alert("Cannot reset: products.json missing."); } }
-function doLogout(){ localStorage.removeItem('zp_admin_auth'); location.reload(); }
-
-/* ---------------- Popups (same API) ---------------- */
-function renderExistingPopups(){
-  const list = document.getElementById('existingPopups');
-  list.innerHTML = '';
-  popups = JSON.parse(localStorage.getItem('zp_popups') || '[]');
-  if(popups.length===0){ list.innerHTML = '<p>No pop-ups.</p>'; return; }
-  popups.forEach((pp,i)=>{
-    const d = document.createElement('div');
-    d.style.padding='8px'; d.style.border='1px solid #ddd'; d.style.marginBottom='8px'; d.style.borderRadius='6px'; d.style.background='#fff';
-    d.innerHTML = `<b>${escapeHtml(pp.text)}</b><div class="small">${pp.created}</div><div style="margin-top:6px"><button data-remove="${i}" style="background:#c0392b;color:#fff;padding:6px;border-radius:6px;border:0;cursor:pointer">Remove</button></div>`;
-    list.appendChild(d);
-  });
-  list.querySelectorAll('[data-remove]').forEach(btn=> btn.addEventListener('click', (e)=>{ const idx = Number(btn.getAttribute('data-remove')); removePopup(idx); }));
-}
-window.removePopup = function(i){ if(!confirm('Remove this pop-up?')) return; popups.splice(i,1); localStorage.setItem('zp_popups', JSON.stringify(popups)); renderExistingPopups(); }
-const sendPopupBtn = document.getElementById('sendPopupBtn');
-if(sendPopupBtn){
-  sendPopupBtn.addEventListener('click', ()=>{
-    const ad = { text: document.getElementById('popupText').value || '', img: document.getElementById('popupImg').value || '', btnText: document.getElementById('popupBtnText').value || '', btnLink: document.getElementById('popupBtnLink').value || '', created: new Date().toISOString() };
-    popups.push(ad);
-    localStorage.setItem('zp_popups', JSON.stringify(popups));
-    alert('Pop-up saved locally. Export popup.json and upload to your site root to broadcast to all visitors.');
-    renderExistingPopups();
-    showView('popups');
-  });
-}
-const publishPopupBtn = document.getElementById('publishPopupBtn');
-if(publishPopupBtn){
-  publishPopupBtn.addEventListener('click', ()=>{
-    const data = JSON.stringify(popups || [], null, 2);
-    const blob = new Blob([data], {type: 'application/json'});
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'popup.json'; a.click();
-    alert('popup.json downloaded. Upload it to your site root to publish pop-ups to all visitors.');
-    showView('popups');
-  });
-}
-function updatePreview(){ const txt = document.getElementById('popupText').value || ''; const img = document.getElementById('popupImg').value || ''; const btnText = document.getElementById('popupBtnText').value || ''; let html = `<b>${escapeHtml(txt)}</b><br/>`; if(img) html += `<img src="${escapeHtml(img)}" width="150" style="margin-top:6px; border-radius:6px;"/><br/>`; if(btnText) html += `<button style="margin-top:8px;padding:8px 10px;background:var(--wa-green);color:#fff;border:0;border-radius:6px">${escapeHtml(btnText)}</button>`; document.getElementById('popupPreview').innerHTML = html; }
-document.getElementById('popupText').addEventListener('input', updatePreview);
-document.getElementById('popupImg').addEventListener('input', updatePreview);
-document.getElementById('popupBtnText').addEventListener('input', updatePreview);
-
-/* ---------------- Ads Settings Implementation ---------------- */
-
-const ADS_KEY = 'zp_ads'; // stored structure
-/* structure:
-{
-  top: { multiple: boolean, items: [ { title, description, descColor, type:image|video|script, image, video, script, link, btnText, btnColor, enabled } ] },
-  bottom: { same structure },
-  autoplay: true
-}
-*/
-
-function getAds(){ try{ const raw = localStorage.getItem(ADS_KEY); return raw ? JSON.parse(raw) : { top:{multiple:false,items:[]}, bottom:{multiple:false,items:[]}, autoplay:true }; }catch(e){ return { top:{multiple:false,items:[]}, bottom:{multiple:false,items:[]}, autoplay:true }; } }
-function saveAds(obj){ localStorage.setItem(ADS_KEY, JSON.stringify(obj)); renderAdsPreview(); renderHome(); }
-
-// helpers to create ad item UI
-function createAdItemDom(section, adData, index){
-  // adData may be undefined for a new item
-  const wrapper = document.createElement('div');
-  wrapper.style.border = '1px solid #eee';
-  wrapper.style.padding = '8px';
-  wrapper.style.borderRadius = '8px';
-  wrapper.style.background = '#fff';
-  wrapper.dataset.index = index;
-
-  wrapper.innerHTML = `
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input type="text" class="ad-title" placeholder="Ad title" value="${adData && adData.title ? escapeHtml(adData.title) : ''}" style="flex:1"/>
-      <label style="font-size:13px;margin-left:4px">Enabled <input type="checkbox" class="ad-enabled" ${adData && adData.enabled ? 'checked' : ''}/></label>
-    </div>
-    <div style="margin-top:8px;">
-      <textarea class="ad-desc" placeholder="Description">${adData && adData.description ? escapeHtml(adData.description) : ''}</textarea>
-      <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
-        <label>Desc color <input type="color" class="ad-desc-color" value="${adData && adData.descColor ? adData.descColor : '#111111'}"/></label>
-        <label style="margin-left:12px">Button text <input type="text" class="ad-btn-text" placeholder="Buy Now" value="${adData && adData.btnText ? escapeHtml(adData.btnText) : ''}"/></label>
-        <label>Button color <input type="color" class="ad-btn-color" value="${adData && adData.btnColor ? adData.btnColor : '#128C7E'}"/></label>
-      </div>
-
-      <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-        <label>Type:
-          <select class="ad-type">
-            <option value="image">Image</option>
-            <option value="video">Video</option>
-            <option value="script">Script</option>
-          </select>
-        </label>
-        <input type="text" class="ad-image-url" placeholder="Image URL (for image type)" style="flex:1" />
-        <input type="text" class="ad-video-url" placeholder="Video URL (for video type)" style="flex:1;display:none" />
-      </div>
-
-      <div style="margin-top:8px;">
-        <textarea class="ad-script" placeholder="Script HTML (for script type)" style="display:none"></textarea>
-        <input type="text" class="ad-link" placeholder="Custom link (any URL)" style="width:100%;margin-top:8px" value="${adData && adData.link ? escapeHtml(adData.link) : ''}" />
-      </div>
-
-      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;">
-        <button class="inline save-ad">Save</button>
-        <button class="inline" style="background:#999" data-action="cancel">Cancel</button>
-        <button class="inline" style="background:#c0392b" data-action="remove">Remove</button>
-      </div>
-    </div>
-  `;
-
-  // set initial type visibility
-  const typeSel = wrapper.querySelector('.ad-type');
-  const imgIn = wrapper.querySelector('.ad-image-url');
-  const vidIn = wrapper.querySelector('.ad-video-url');
-  const scrIn = wrapper.querySelector('.ad-script');
-
-  if(adData && adData.type) typeSel.value = adData.type;
-  updateTypeVisibility(typeSel.value, imgIn, vidIn, scrIn);
-
-  typeSel.addEventListener('change', ()=> updateTypeVisibility(typeSel.value, imgIn, vidIn, scrIn));
-
-  // populate image/video/script fields
-  if(adData){
-    if(adData.image) imgIn.value = adData.image;
-    if(adData.video) vidIn.value = adData.video;
-    if(adData.script) scrIn.value = adData.script;
-  }
-
-  // buttons
-  wrapper.querySelector('[data-action="remove"]').addEventListener('click', ()=>{
-    if(!confirm('Remove this ad?')) return;
-    const ads = getAds();
-    const list = (section === 'top') ? ads.top.items : ads.bottom.items;
-    list.splice(index,1);
-    saveAds(ads);
-    renderAdsUI();
-  });
-  wrapper.querySelector('[data-action="cancel"]').addEventListener('click', ()=> {
-    renderAdsUI(); // re-render to reset
-  });
-  wrapper.querySelector('.save-ad').addEventListener('click', ()=>{
-    // gather data
-    const newAd = {
-      title: wrapper.querySelector('.ad-title').value.trim(),
-      description: wrapper.querySelector('.ad-desc').value.trim(),
-      descColor: wrapper.querySelector('.ad-desc-color').value,
-      btnText: wrapper.querySelector('.ad-btn-text').value.trim(),
-      btnColor: wrapper.querySelector('.ad-btn-color').value,
-      type: wrapper.querySelector('.ad-type').value,
-      image: wrapper.querySelector('.ad-image-url').value.trim(),
-      video: wrapper.querySelector('.ad-video-url').value.trim(),
-      script: wrapper.querySelector('.ad-script').value.trim(),
-      link: wrapper.querySelector('.ad-link').value.trim(),
-      enabled: wrapper.querySelector('.ad-enabled').checked
-    };
-    const ads = getAds();
-    const list = (section === 'top') ? ads.top.items : ads.bottom.items;
-    if(index >= 0 && index < list.length){
-      list[index] = newAd;
-    } else {
-      list.push(newAd);
-    }
-    saveAds(ads);
-    renderAdsUI();
-  });
-
-  return wrapper;
-}
-
-function updateTypeVisibility(type, imgEl, vidEl, scrEl){
-  if(type === 'image'){ imgEl.style.display = 'block'; vidEl.style.display = 'none'; scrEl.style.display = 'none'; }
-  else if(type === 'video'){ imgEl.style.display = 'none'; vidEl.style.display = 'block'; scrEl.style.display = 'none'; }
-  else { imgEl.style.display = 'none'; vidEl.style.display = 'none'; scrEl.style.display = 'block'; }
-}
-
-/* render Ads UI (editor) */
-function renderAdsUI(){
-  const ads = getAds();
-  // top multiple checkbox
-  document.getElementById('topMultiple').checked = !!ads.top.multiple;
-  document.getElementById('bottomMultiple').checked = !!ads.bottom.multiple;
-
-  const topList = document.getElementById('topAdsList');
-  const bottomList = document.getElementById('bottomAdsList');
-  topList.innerHTML = ''; bottomList.innerHTML = '';
-
-  // ensure at least one entry for single mode (empty)
-  if(!ads.top.items || !Array.isArray(ads.top.items)) ads.top.items = [];
-  if(!ads.bottom.items || !Array.isArray(ads.bottom.items)) ads.bottom.items = [];
-
-  // add existing
-  ads.top.items.forEach((ad,i)=> topList.appendChild(createAdItemDom('top', ad, i)));
-  ads.bottom.items.forEach((ad,i)=> bottomList.appendChild(createAdItemDom('bottom', ad, i)));
-
-  // show add buttons state
-  // if multiple false and there is already one, disable addTopAd
-  document.getElementById('addTopAd').disabled = (!ads.top.multiple && ads.top.items.length >= 1);
-  document.getElementById('addBottomAd').disabled = (!ads.bottom.multiple && ads.bottom.items.length >= 1);
-
-  // bind add / clear
-  document.getElementById('addTopAd').onclick = ()=>{
-    const ads2 = getAds();
-    if(!ads2.top.multiple && ads2.top.items.length >= 1){ alert('Multiple disabled. Clear first to add new ad.'); return; }
-    ads2.top.items.push({ title:'', description:'', descColor:'#111111', type:'image', image:'', video:'', script:'', link:'', btnText:'', btnColor:'#128C7E', enabled:true });
-    saveAds(ads2);
-    renderAdsUI();
-  };
-  document.getElementById('addBottomAd').onclick = ()=>{
-    const ads2 = getAds();
-    if(!ads2.bottom.multiple && ads2.bottom.items.length >= 1){ alert('Multiple disabled. Clear first to add new ad.'); return; }
-    ads2.bottom.items.push({ title:'', description:'', descColor:'#111111', type:'image', image:'', video:'', script:'', link:'', btnText:'', btnColor:'#128C7E', enabled:true });
-    saveAds(ads2);
-    renderAdsUI();
-  };
-  document.getElementById('clearTopAds').onclick = ()=>{
-    if(!confirm('Clear all top ads?')) return;
-    const ads2 = getAds(); ads2.top.items = []; saveAds(ads2); renderAdsUI();
-  };
-  document.getElementById('clearBottomAds').onclick = ()=>{
-    if(!confirm('Clear all bottom ads?')) return;
-    const ads2 = getAds(); ads2.bottom.items = []; saveAds(ads2); renderAdsUI();
-  };
-
-  // toggle multiple checkboxes
-  document.getElementById('topMultiple').onchange = (e)=>{
-    const ads2 = getAds(); ads2.top.multiple = e.target.checked; saveAds(ads2); renderAdsUI();
-  };
-  document.getElementById('bottomMultiple').onchange = (e)=>{
-    const ads2 = getAds(); ads2.bottom.multiple = e.target.checked; saveAds(ads2); renderAdsUI();
-  };
-
-  // save / export
-  document.getElementById('saveAdsBtn').onclick = ()=> { const ads2 = getAds(); saveAds(ads2); alert('Ads saved'); };
-  document.getElementById('exportAdsBtn').onclick = ()=> {
-    const data = JSON.stringify(getAds(), null, 2);
-    const blob = new Blob([data], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ads.json'; a.click();
-    alert('ads.json downloaded. Upload to site root to publish.');
-  };
-
-  // show live preview
-  renderAdsPreview();
-}
-
-/* ads preview rendering for admin & home */
-function renderAdsPreview(){
-  const ads = getAds();
-  const topPreview = document.getElementById('topAdsPreview');
-  const bottomPreview = document.getElementById('bottomAdsPreview');
-  const livePreview = document.getElementById('adsLivePreview');
-  topPreview.innerHTML = ''; bottomPreview.innerHTML = ''; livePreview.innerHTML = '';
-
-  function renderListToContainer(list, container){
-    if(!list || list.length===0){ container.innerHTML = '<div class="small" style="padding:8px">No ads configured.</div>'; return; }
-    list.forEach((ad, i)=>{
-      if(!ad.enabled) return;
-      const card = document.createElement('div'); card.className = 'ad-card';
-      const media = document.createElement('div'); media.className = 'ad-media';
-      const body = document.createElement('div'); body.className = 'ad-body';
-      body.innerHTML = `<div style="font-weight:800">${escapeHtml(ad.title||'')}</div><div style="color:${ad.descColor||'#111'}">${escapeHtml(ad.description||'')}</div>`;
-      if(ad.type === 'image' && ad.image){
-        const img = document.createElement('img'); img.src = ad.image; media.appendChild(img);
-      } else if(ad.type === 'video' && ad.video){
-        const vid = document.createElement('video'); vid.src = ad.video; vid.controls = true; vid.autoplay = true; vid.muted = true; vid.loop = true; vid.style.maxWidth='220px'; media.appendChild(vid);
-      } else if(ad.type === 'script' && ad.script){
-        const wrapper = document.createElement('div'); wrapper.innerHTML = ad.script; media.appendChild(wrapper);
-      }
-      // button
-      const actions = document.createElement('div'); actions.className = 'ad-actions';
-      if(ad.btnText){
-        const btn = document.createElement('a'); btn.href = ad.link || '#'; btn.innerText = ad.btnText; btn.style.display='inline-block'; btn.style.padding='8px 12px'; btn.style.borderRadius='6px'; btn.style.background = ad.btnColor || '#128C7E'; btn.style.color='#fff'; btn.style.textDecoration='none';
-        actions.appendChild(btn);
-      }
-      card.appendChild(media);
-      card.appendChild(body);
-      card.appendChild(actions);
-      container.appendChild(card);
-    });
-  }
-
-  renderListToContainer(ads.top.items, topPreview);
-  renderListToContainer(ads.bottom.items, bottomPreview);
-  // live preview shows both
-  const liveTopWrap = document.createElement('div'); liveTopWrap.innerHTML = '<strong>Top Ads</strong>'; livePreview.appendChild(liveTopWrap);
-  renderListToContainer(ads.top.items, livePreview);
-  const liveBottomWrap = document.createElement('div'); liveBottomWrap.innerHTML = '<strong style="margin-top:8px;display:block">Bottom Ads</strong>'; livePreview.appendChild(liveBottomWrap);
-  renderListToContainer(ads.bottom.items, livePreview);
-}
-
-/* render home: product summary + ads */
-function renderHome(){
-  // products quick
-  const pl = document.getElementById('productListHome'); pl.innerHTML = '';
-  if(window.products && window.products.length){
-    window.products.slice(0,6).forEach(p=>{
-      const div = document.createElement('div'); div.className='product-item'; div.style.marginBottom='8px';
-      div.innerHTML = `<div><strong>${escapeHtml(p.name)}</strong><div class="small">${p.currency||'GHS'} ${Number(p.price).toFixed(2)}</div></div>`;
-      pl.appendChild(div);
-    });
-  } else pl.innerHTML = '<p class="small">No products yet.</p>';
-
-  // ads preview
-  renderAdsPreview();
-}
-
-/* ---------------- Initial boot and view restore ---------------- */
+/* ---------------- Admin Init ---------------- */
 function initDashboard(){
-  loadInitial();
-  // restore last view
-  const last = localStorage.getItem('zp_admin_view') || 'home';
-  // apply drawer open state
-  const drawOpen = localStorage.getItem('zp_drawer_open') === '1';
-  if(drawOpen) openDrawer(); else closeDrawer();
+  renderHome();
+  const last = localStorage.getItem('zp_admin_view')||'home';
   showView(last);
 }
 
-/* ---------------- Helper functions ---------------- */
-function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[c])); }
+/* ---------------- Logout ---------------- */
+function doLogout(){ localStorage.removeItem('zp_admin_auth'); location.reload(); }
 
-/* init if already logged in */
-if(localStorage.getItem('zp_admin_auth') === '1') initDashboard();
+/* ---------------- Export JSON ---------------- */
+function exportJson(){
+  const data = JSON.stringify(window.products||[],null,2);
+  const blob = new Blob([data],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='products.json'; a.click();
+  alert('products.json downloaded');
+}
+
+/* ---------------- Reset Store ---------------- */
+async function resetStore(){
+  if(!confirm("Reset store to default products.json?")) return;
+  try{
+    const r = await fetch('products.json'); if(!r.ok) throw new Error('no file');
+    window.products = await r.json();
+    localStorage.setItem('zp_products',JSON.stringify(window.products));
+    alert('Store reset to products.json'); renderHome();
+  }catch(e){ alert('Cannot reset: products.json missing'); }
+}
+
+/* ---------------- Home & Products Placeholder ---------------- */
+window.products = JSON.parse(localStorage.getItem('zp_products')||'[]');
+function renderHome(){ console.log('Render home with products/ads'); }
+
+/* ---------------- Popups Placeholder ---------------- */
+window.popups = JSON.parse(localStorage.getItem('zp_popups')||'[]');
+function renderExistingPopups(){ console.log('Render popups'); }
 
 </script>
+
 </body>
 </html>
+<HTML>
