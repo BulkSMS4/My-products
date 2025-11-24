@@ -45,6 +45,10 @@
   input,textarea{padding:8px;border-radius:6px;border:1px solid #ccc;margin-bottom:8px;width:100%;font-size:14px;}
   textarea{resize:none;}
   h3{margin-top:10px;color:#075E54;}
+
+  /* Popup composer section */
+  #popupComposer .popup-preview { background:#fff;padding:12px;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.08); }
+  .small-muted{font-size:12px;color:#666;margin-top:6px;}
 </style>
 </head>
 <body>
@@ -66,12 +70,17 @@
     <h2>ZeroPay Admin</h2>
     <button id="showProducts">Products</button>
     <button id="addProductBtn">Add Product</button>
+    <button id="showPopupsBtn">Pop-Ups</button>
     <button id="exportJson">Export JSON</button>
     <button id="resetStore">Reset Store</button>
     <button id="logoutBtn" class="logout">Logout</button>
+    <div style="margin-top:12px;" class="small-muted">Tip: After sending a pop-up, export <code>popup.json</code> and upload to your site root to broadcast to all visitors.</div>
   </div>
   <div id="main">
+    <!-- PRODUCTS LIST -->
     <div id="productList"></div>
+
+    <!-- ADD PRODUCT FORM -->
     <div id="addProductForm" style="display:none;">
       <h3>Add Product</h3>
       <input id="pname" placeholder="Name" />
@@ -83,6 +92,28 @@
       <input id="ppayment" placeholder="Payment link (optional)" />
       <button id="addProduct">Add Product</button>
     </div>
+
+    <!-- POPUP COMPOSER -->
+    <div id="popupSection" style="display:none;">
+      <h3>Send Pop-Up Notification</h3>
+      <div id="popupComposer">
+        <textarea id="popupText" placeholder="Pop-up message (title + short text)"></textarea>
+        <input id="popupImg" placeholder="Image URL (optional)" />
+        <input id="popupBtnText" placeholder="Button Text (optional)" />
+        <input id="popupBtnLink" placeholder="Button Link (optional)" />
+        <div style="display:flex;gap:8px;margin-top:8px;">
+          <button id="sendPopupBtn">Send Pop-Up (save to local)</button>
+          <button id="publishPopupBtn" style="background:#075E54;">Publish & Export popup.json</button>
+        </div>
+        <div class="small-muted">Publishing exports <code>popup.json</code>. Upload that file to your host root so all site visitors get the popup automatically (recommended).</div>
+        <h4>Preview</h4>
+        <div id="popupPreview" class="popup-preview">No preview yet.</div>
+      </div>
+
+      <h4 style="margin-top:18px;">Existing pop-ups (local)</h4>
+      <div id="existingPopups"></div>
+    </div>
+
   </div>
 </div>
 
@@ -106,17 +137,22 @@
   };
 
   function initDashboard(){
+    // keep your original behavior: products in localStorage or products.json
     window.products = [];
+    let popups = JSON.parse(localStorage.getItem('zp_popups') || '[]');
+
     async function loadInitial(){
       const stored = localStorage.getItem('zp_products');
       if(stored){
         window.products = JSON.parse(stored);
       }else{
-        try{ const r=await fetch('products.json'); window.products = await r.json(); }catch(e){ window.products=[]; }
+        try{ const r=await fetch('products.json'); if(r.ok) window.products = await r.json(); }catch(e){ window.products=[]; }
       }
       renderList();
+      renderExistingPopups();
     }
 
+    // RENDER PRODUCTS in original WhatsApp admin style (unchanged)
     function renderList(){
       const el = document.getElementById('productList');
       el.innerHTML = '';
@@ -126,14 +162,15 @@
         const row = document.createElement('div');
         row.className='product-item';
         const imagesHtml = `<div class="admin-carousel" id="admin-carousel-${i}" style="position:relative;display:inline-block;">
-          <img src="${p.images[0]}">
-          ${p.images.length>1?'<button class="prev-btn">‹</button><button class="next-btn">›</button>':''}
+          <img src="${(p.images&&p.images[0])?p.images[0]:(p.image? (Array.isArray(p.image)?p.image[0]:p.image) : 'https://via.placeholder.com/600x400?text=Product')}">
+          ${(p.images && p.images.length>1)?'<button class="prev-btn">‹</button><button class="next-btn">›</button>':''}
         </div>`;
         row.innerHTML=`
-          <div style="display:flex;gap:8px;align-items:center;">${imagesHtml}
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${imagesHtml}
             <div>
               <strong>${p.name}</strong>
-              <div class="small">${p.currency} ${Number(p.price).toFixed(2)}</div>
+              <div class="small">${p.currency || 'GHS'} ${Number(p.price).toFixed(2)}</div>
               <div class="small">ID: ${p.id}</div>
             </div>
           </div>
@@ -144,7 +181,8 @@
         `;
         el.appendChild(row);
 
-        if(p.images.length>1){
+        // carousel logic
+        if(p.images && p.images.length>1){
           const carousel = row.querySelector(`#admin-carousel-${i}`);
           const imgEl = carousel.querySelector('img');
           let imgIndex=0;
@@ -156,48 +194,127 @@
 
     function save(){ localStorage.setItem('zp_products',JSON.stringify(window.products||[])); }
 
+    // IMAGE PREVIEW for add form
     const pimage = document.getElementById('pimage');
     pimage?.addEventListener('input',()=>{
       const preview = document.getElementById('imagePreview');
       preview.innerHTML='';
-      const urls = pimage.value.split(',').map(u=>u.trim()).filter(u=>u);
+      const urls = (pimage.value || '').split(',').map(u=>u.trim()).filter(u=>u);
       urls.forEach(url=>{ const img=document.createElement('img'); img.src=url; preview.appendChild(img); });
     });
 
+    // ADD PRODUCT (same UX)
     document.getElementById('addProduct').onclick = ()=>{
       const name = document.getElementById('pname').value.trim();
       const price = parseFloat(document.getElementById('pprice').value)||0;
-      const images = document.getElementById('pimage').value.split(',').map(u=>u.trim()).filter(u=>u) || ['https://via.placeholder.com/600x400?text=Product'];
+      const images = (document.getElementById('pimage').value || '').split(',').map(u=>u.trim()).filter(u=>u);
       const currency = document.getElementById('pcurrency').value.trim() || 'GHS';
       const desc = document.getElementById('pdesc').value.trim();
       const payment = document.getElementById('ppayment').value.trim();
       if(!name) return alert('Name required');
       const id='p'+Date.now();
-      window.products.push({id,name,price,currency,images,description:desc,payment_link:payment});
+      // keep both images[] and image property for compatibility
+      const prod = {id,name,price,currency,description:desc,payment_link:payment};
+      if(images.length>0){ prod.images = images; prod.image = images[0]; }
+      else { prod.images = []; prod.image = ''; }
+      window.products.push(prod);
       save();
       renderList();
+      // clear
       document.getElementById('pname').value=''; document.getElementById('pprice').value=''; document.getElementById('pimage').value=''; document.getElementById('pcurrency').value=''; document.getElementById('pdesc').value=''; document.getElementById('ppayment').value=''; document.getElementById('imagePreview').innerHTML='';
+      alert('Product added');
     };
 
     window.editProduct = function(i){
       const p = window.products[i];
       p.name = prompt('Name:',p.name)||p.name;
       p.price = parseFloat(prompt('Price:',p.price))||p.price;
-      p.images = prompt('Image URLs (comma separated):',p.images.join(','))?.split(',').map(u=>u.trim())||p.images;
+      const imgs = prompt('Image URLs (comma separated):', (p.images && p.images.length)? p.images.join(',') : (p.image||'')) || '';
+      p.images = imgs.split(',').map(x=>x.trim()).filter(x=>x);
+      p.image = p.images[0] || p.image;
       p.currency = prompt('Currency:',p.currency)||p.currency;
       p.description = prompt('Description:',p.description)||p.description;
-      p.payment_link = prompt('Payment Link:',p.payment_link)||p.payment_link;
+      p.payment_link = prompt('Payment Link:',p.payment_link||'')||p.payment_link;
       save(); renderList();
     };
+
     window.deleteProduct = function(i){ if(confirm('Delete this product?')){ window.products.splice(i,1); save(); renderList(); } };
 
-    // Sidebar buttons
-    document.getElementById('showProducts').onclick = ()=>{ document.getElementById('addProductForm').style.display='none'; renderList(); };
-    document.getElementById('addProductBtn').onclick = ()=>{ document.getElementById('addProductForm').style.display='block'; };
+    // Sidebar buttons - preserve UX
+    document.getElementById('showProducts').onclick = ()=>{ document.getElementById('addProductForm').style.display='none'; document.getElementById('popupSection').style.display='none'; renderList(); };
+    document.getElementById('addProductBtn').onclick = ()=>{ document.getElementById('popupSection').style.display='none'; document.getElementById('addProductForm').style.display='block'; };
+    document.getElementById('showPopupsBtn').onclick = ()=>{ document.getElementById('addProductForm').style.display='none'; document.getElementById('popupSection').style.display='block'; renderExistingPopups(); };
+
+    // Export products.json
     document.getElementById('exportJson').onclick = ()=>{ const data=JSON.stringify(window.products||[],null,2); const blob=new Blob([data],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='products.json'; a.click(); };
-    document.getElementById('resetStore').onclick = async ()=>{ if(!confirm("Reset store to default products.json?")) return; try{ const r=await fetch("products.json"); window.products=await r.json(); save(); renderList(); }catch(e){ alert("Cannot reset: products.json missing."); } };
+
+    // Reset store from hosted products.json
+    document.getElementById('resetStore').onclick = async ()=>{ if(!confirm("Reset store to default products.json?")) return; try{ const r=await fetch("products.json"); if(!r.ok) throw new Error('no file'); window.products=await r.json(); save(); renderList(); }catch(e){ alert("Cannot reset: products.json missing."); } };
+
+    // Logout
     document.getElementById('logoutBtn').onclick = ()=>{ localStorage.removeItem('zp_products'); location.reload(); };
 
+    // ------------------ POPUP COMPOSER ------------------
+    function renderExistingPopups(){
+      const list = document.getElementById('existingPopups');
+      list.innerHTML = '';
+      popups = JSON.parse(localStorage.getItem('zp_popups') || '[]');
+      if(popups.length===0){ list.innerHTML = '<p>No pop-ups.</p>'; return; }
+      popups.forEach((pp,i)=>{
+        const d = document.createElement('div');
+        d.style.padding='8px'; d.style.border='1px solid #ddd'; d.style.marginBottom='8px'; d.style.borderRadius='6px'; d.innerHTML = `<b>${pp.text}</b><div class="small">${pp.created}</div><div style="margin-top:6px"><button onclick="removePopup(${i})" style="background:#c0392b">Remove</button></div>`;
+        list.appendChild(d);
+      });
+    }
+
+    window.removePopup = function(i){
+      if(!confirm('Remove this pop-up?')) return;
+      popups.splice(i,1);
+      localStorage.setItem('zp_popups', JSON.stringify(popups));
+      renderExistingPopups();
+    };
+
+    // Send pop-up (local storage only)
+    document.getElementById('sendPopupBtn').addEventListener('click', ()=>{
+      const ad = {
+        text: document.getElementById('popupText').value || '',
+        img: document.getElementById('popupImg').value || '',
+        btnText: document.getElementById('popupBtnText').value || '',
+        btnLink: document.getElementById('popupBtnLink').value || '',
+        created: new Date().toISOString()
+      };
+      popups.push(ad);
+      localStorage.setItem('zp_popups', JSON.stringify(popups));
+      alert('Pop-up saved locally. Export popup.json and upload to your site root to broadcast to all visitors.');
+      renderExistingPopups();
+    });
+
+    // Publish & Export popup.json (download)
+    document.getElementById('publishPopupBtn').addEventListener('click', ()=>{
+      const data = JSON.stringify(popups || [], null, 2);
+      const blob = new Blob([data], {type: 'application/json'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'popup.json';
+      a.click();
+      alert('popup.json downloaded. Upload it to your site root to publish pop-ups to all visitors.');
+    });
+
+    // preview update
+    function updatePreview(){
+      const txt = document.getElementById('popupText').value || '';
+      const img = document.getElementById('popupImg').value || '';
+      const btnText = document.getElementById('popupBtnText').value || '';
+      let html = `<b>${txt}</b><br/>`;
+      if(img) html += `<img src="${img}" width="150" style="margin-top:6px;"/><br/>`;
+      if(btnText) html += `<button style="margin-top:8px;">${btnText}</button>`;
+      document.getElementById('popupPreview').innerHTML = html;
+    }
+    document.getElementById('popupText').addEventListener('input', updatePreview);
+    document.getElementById('popupImg').addEventListener('input', updatePreview);
+    document.getElementById('popupBtnText').addEventListener('input', updatePreview);
+
+    // initial load
     loadInitial();
   }
 </script>
